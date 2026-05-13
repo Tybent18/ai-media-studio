@@ -215,8 +215,6 @@ Failures are isolated and handled gracefully to reduce pipeline crashes.
 
 ---
 
-# System Architecture
-
 # System Architecture Diagrams
 
 ## Generative Pipeline
