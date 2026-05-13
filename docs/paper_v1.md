@@ -1,9 +1,9 @@
 ```markdown
 ## Version Navigation
 
-- V1 (current)
-- [V2 — Adaptive Pipeline](./v2_pipeline_explanation.md)
-- [V3 — Generative System](./v3_system.md)
+V1 (current)
+[V2 — Adaptive Pipeline](./v2_pipeline_explanation.md)
+[V3 — Generative System](./v3_system.md)
 
 AI Media Studio (V1)
 
