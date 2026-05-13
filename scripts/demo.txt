@@ -1,0 +1,20 @@
+[HOOK]
+What if one system could turn text into a full video automatically?
+
+[INTRO]
+This is an AI media pipeline that transforms scripts into complete videos using modular stages.
+
+[SECTION 1]
+First, it parses the script into structured scenes.
+
+[SECTION 2]
+Then it generates voice using neural text-to-speech.
+
+[SECTION 3]
+Next, it selects visuals and applies motion like zoom and pacing.
+
+[SECTION 4]
+Finally, everything is assembled into a complete video automatically.
+
+[OUTRO]
+This is just version two—and it’s only getting smarter.

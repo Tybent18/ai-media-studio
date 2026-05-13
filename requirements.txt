@@ -1,0 +1,4 @@
+moviepy
+edge-tts
+Pillow
+numpy
