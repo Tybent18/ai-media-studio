@@ -217,6 +217,30 @@ Failures are isolated and handled gracefully to reduce pipeline crashes.
 
 # System Architecture
 
+# System Architecture Diagrams
+
+## Generative Pipeline
+
+![Generative Pipeline](docs/diagrams/pipeline.png)
+
+---
+
+## Intermediate Representation (IR) Flow
+
+![IR Flow](docs/diagrams/ir_flow.png)
+
+---
+
+## System Layers
+
+![System Layers](docs/diagrams/system_layers.png)
+
+---
+
+## Coordinated System Architecture
+
+![Mermaid Diagram](docs/diagrams/mermaid-diagram.png)
+
 ## High-Level Pipeline
 
 ```text
