@@ -330,10 +330,10 @@ The repository includes architecture notes and system design papers documenting 
 
 | Document                          | Description                                     |
 | --------------------------------- | ----------------------------------------------- |
-| `docs/paper_v1.md`                | Initial deterministic media pipeline concepts   |
-| `docs/v2_pipeline_explanation.md` | Adaptive pipeline evolution and coordination    |
-| `docs/v3_system.md`               | Structured generative system architecture       |
-| `docs/architecture.md`            | Technical system overview and design principles |
+| [V1 Paper](docs/paper_v1.md)                | Initial deterministic media pipeline concepts   |
+| [V2 Architecture](docs/v2_pipeline_explanation.md) | Adaptive pipeline evolution and coordination    |
+| [V3 System Design](docs/v3_system.md)               | Structured generative system architecture       |
+| [Architecture Overview](docs/architecture.md)           | Technical system overview and design principles |
 
 These documents explain the engineering rationale behind:
 
