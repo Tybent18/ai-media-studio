@@ -1,174 +1,62 @@
-import unittest
+import json
+from pathlib import Path
 
-# Core pipeline imports (adjust paths if needed)
-from core.parser import ScriptParser
-from story_intelligence import analyze_script
-from scene_builder import build_scenes
-from storyboard_builder import build_storyboard
-from visual_engine import get_visual
-from tts import generate_voice
-from video_time_controller import build_video_timeline
+import pytest
 
+from media_studio.models import ProjectSpec, VideoFormat
+from media_studio.pipeline import MediaPipeline, PipelineCancelled, probe_video
+from media_studio.providers import PROVIDER_CATALOG
 
-# -----------------------------
-# SAMPLE SCRIPT (REALISTIC INPUT)
-# -----------------------------
-TEST_SCRIPT = """
-Hook: Imagine a world where AI builds everything for you.
-
-Intro: In this video, we explore how AI video systems actually work.
-
-Point: These systems combine vision models, speech synthesis, and editing logic.
-
-Outro: This is just the beginning of automated storytelling.
-"""
+SCRIPT = """Hook: Start with a sharp question.
+Point: Explain the system with visible evidence.
+Outro: End with a clear next step."""
 
 
-class TestVideoPipeline(unittest.TestCase):
-
-    # -----------------------------
-    # FULL PIPELINE TEST
-    # -----------------------------
-    def test_full_pipeline_execution(self):
-
-        parser = ScriptParser()
-
-        # 1. PARSE
-        parsed = parser.parse(TEST_SCRIPT)
-        self.assertTrue(len(parsed) > 0)
-
-        # 2. STORY INTELLIGENCE
-        story = analyze_script(TEST_SCRIPT)
-        self.assertIn("energy", story)
-        self.assertIn("topic", story)
-
-        # 3. SCENE BUILDING
-        scenes = build_scenes(parsed, story, mode="long")
-        self.assertTrue(len(scenes) > 0)
-
-        # validate scene structure
-        for s in scenes:
-            self.assertIn("text", s)
-            self.assertIn("type", s)
-
-        # 4. STORYBOARD
-        storyboard = build_storyboard(parsed, story, mode="long")
-        self.assertTrue(len(storyboard) > 0)
-
-        # 5. VISUAL GENERATION (SAFE MODE)
-        for i, scene in enumerate(scenes):
-
-            visual = get_visual(
-                scene,
-                i,
-                mode="long",
-                story_signals=story
-            )
-
-            self.assertIn("paths", visual)
-            self.assertIn("motion", visual)
-
-            # attach for downstream validation
-            scene["visual"] = visual
-
-        # 6. TTS GENERATION (MOCK-SAFE CHECK)
-        tts_map = {}
-
-        for i, scene in enumerate(scenes):
-
-            try:
-                audio = generate_voice(scene, i, mode="long")
-                tts_map[i] = audio
-
-                self.assertTrue(audio.endswith(".mp3"))
-
-            except Exception as e:
-                self.fail(f"TTS failed at scene {i}: {e}")
-
-        # 7. TIMELINE BUILDING
-        timeline = build_video_timeline(
-            scenes,
-            storyboard,
-            tts_map,
-            story
-        )
-
-        self.assertIn("timeline", timeline)
-        self.assertTrue(len(timeline["timeline"]) > 0)
-
-        # -----------------------------
-        # STRUCTURAL VALIDATION
-        # -----------------------------
-        for node in timeline["timeline"]:
-
-            self.assertIn("start_time", node)
-            self.assertIn("end_time", node)
-            self.assertIn("text", node)
-
-            # sanity check timing
-            self.assertLess(node["start_time"], node["end_time"])
-
-        print("\n✅ FULL PIPELINE TEST PASSED")
+def test_parser_normalizes_modes():
+    assert [x.kind for x in MediaPipeline.parse_script(SCRIPT, VideoFormat.LONG)] == ["hook", "point", "outro"]
+    assert len(MediaPipeline.parse_script("\n".join(f"Point: {i}" for i in range(10)), VideoFormat.SHORT)) == 6
 
 
-    # -----------------------------
-    # TIMING CONSISTENCY TEST
-    # -----------------------------
-    def test_timeline_consistency(self):
-
-        parser = ScriptParser()
-        parsed = parser.parse(TEST_SCRIPT)
-
-        story = analyze_script(TEST_SCRIPT)
-        scenes = build_scenes(parsed, story)
-
-        storyboard = build_storyboard(parsed, story)
-
-        tts_map = {i: f"audio_{i}.mp3" for i in range(len(scenes))}
-
-        timeline = build_video_timeline(
-            scenes,
-            storyboard,
-            tts_map,
-            story
-        )
-
-        last_end = 0
-
-        for node in timeline["timeline"]:
-
-            # no overlaps allowed
-            self.assertGreaterEqual(node["start_time"], last_end)
-
-            last_end = node["end_time"]
-
-        print("\n✅ TIMELINE CONSISTENCY OK")
+@pytest.mark.parametrize("mode,size", [(VideoFormat.LONG, (1280, 720)), (VideoFormat.SHORT, (720, 1280))])
+def test_real_render_has_expected_canvas(tmp_path, mode, size):
+    result = MediaPipeline().run(ProjectSpec("Render proof", SCRIPT, mode, output_dir=tmp_path))
+    path = Path(result["video_path"])
+    assert path.exists() and path.stat().st_size > 1000
+    info = probe_video(path)
+    video = next(x for x in info["streams"] if x["codec_type"] == "video")
+    assert (video["width"], video["height"]) == size
+    assert float(info["format"]["duration"]) > 5
+    assert Path(result["manifest_path"]).exists()
+    assert json.loads(Path(result["provider_catalog"]).read_text())["image"]
 
 
-    # -----------------------------
-    # SYSTEM STABILITY TEST
-    # -----------------------------
-    def test_system_resilience(self):
-
-        parser = ScriptParser()
-
-        # broken input simulation
-        broken_script = """
-        Random text with no structure
-        Another line without tags
-        Outro: Still should survive
-        """
-
-        parsed = parser.parse(broken_script)
-
-        # system should NOT crash
-        self.assertIsInstance(parsed, list)
-
-        # should recover at least one valid scene
-        self.assertTrue(len(parsed) >= 0)
-
-        print("\n✅ RESILIENCE TEST PASSED")
+def test_cancellation_before_work_removes_partial_run(tmp_path):
+    pipe = MediaPipeline()
+    pipe.cancel_event.set()
+    with pytest.raises(PipelineCancelled):
+        pipe._emit("stop", 0.2)
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_active_render_can_be_cancelled_and_cleaned(tmp_path):
+    holder = {}
+
+    def stop_during_render(_message, value):
+        if value >= 0.55:
+            holder["pipe"].cancel()
+
+    pipe = MediaPipeline(stop_during_render)
+    holder["pipe"] = pipe
+    with pytest.raises(PipelineCancelled):
+        pipe.run(ProjectSpec("Cancelled render", SCRIPT, VideoFormat.LONG, output_dir=tmp_path))
+    assert not list(tmp_path.rglob("*.mp4"))
+
+
+def test_provider_catalog_has_local_fallbacks_and_remote_contracts():
+    assert {x.mode for x in PROVIDER_CATALOG["image"]} >= {"offline", "adapter"}
+    assert any(x.key == "elevenlabs" for x in PROVIDER_CATALOG["voice"])
+    assert any(x.key == "local-vtuber" for x in PROVIDER_CATALOG["avatar"])
+
+
+def test_uninstalled_remote_adapter_is_never_silently_faked(tmp_path):
+    with pytest.raises(ValueError, match="not an installed adapter"):
+        MediaPipeline().run(ProjectSpec("Remote", SCRIPT, image_provider="openai-image", output_dir=tmp_path))
