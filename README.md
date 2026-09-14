@@ -1,522 +1,156 @@
-# AI Media Studio (V3)
+# AI Media Studio V4
 
-> A modular AI video generation system that transforms scripts into fully rendered, multimodal videos through coordinated narrative planning, temporal synchronization, and AI-driven media synthesis.
+**Turn an editable script into a real long-form or vertical video through a visible, cancellable production pipeline.**
 
----
+AI Media Studio is a local-first orchestration workspace for YouTube videos and Shorts. V4 replaces the non-rendering legacy path with an FFmpeg pipeline that produces real MP4 files without requiring paid AI services. Image, voice, avatar, and music systems are provider contracts, so local fallbacks remain available while cloud integrations can be added without rewriting the renderer.
 
-## Overview
+> Current boundary: V4 renders and packages videos locally. Direct YouTube upload and analytics are intentionally deferred. Remote provider entries describe adapter contracts; they are not fake integrations.
 
-AI Media Studio (V3) is a systems-oriented generative media pipeline designed to automate long-form video creation from text inputs.
+## Production demos
 
-Instead of treating video generation as a single black-box model, the project decomposes the process into structured stages:
+### Long-form workflow
 
-* narrative analysis
-* scene planning
-* intermediate representations (IRs)
-* synchronized audio generation
-* visual synthesis
-* timeline orchestration
-* cinematic rendering
-* distribution preparation
+![Long-form production](demo/v4/long-production.gif)
 
-The result is a reproducible, modular architecture capable of generating narrated, scene-aware videos with synchronized visuals, motion effects, and rendering logic.
+### Shorts workflow
 
-This project was built to explore:
+![Short-form production](demo/v4/short-production.gif)
 
-* multimodal AI orchestration
-* structured generative systems
-* temporal synchronization pipelines
-* narrative-aware automation
-* deterministic media generation
-* scalable modular architectures
-
----
-
-# Demo Previews
-
-## Rendering Pipeline Demo
-
-Shows the rendering pipeline constructing scenes, applying motion effects, syncing assets, and composing the final video timeline.
-
-![Rendering Demo](demo/video_rendering-Demo.gif)
-
----
-
-## Audio Processing Demo
-
-Demonstrates narration generation, audio timing synchronization, and media asset coordination.
-
-![Audio Demo](demo/video_audio-Demo.gif)
-
----
-
-## Failure Recovery / Runtime Validation Demo
-
-Highlights self-healing runtime checks, validation layers, and controlled failure handling.
-
-![Failure Demo](demo/video_fail-Demo.gif)
-
----
-
-# What the System Generates
-
-Given a topic or script such as:
-
-```text
-"The future of AI in healthcare"
-```
-
-AI Media Studio automatically generates:
-
-* structured narrative scenes
-* AI voice narration
-* AI-generated visuals and fallback B-roll
-* motion effects and transitions
-* speech-aligned timing
-* beat-aware scene synchronization
-* final rendered video output
-* YouTube-ready metadata
-
-### Example Output Flow
-
-```text
-Input Topic
-    ↓
-Narrative Analysis
-    ↓
-Scene Construction
-    ↓
-Storyboard Planning
-    ↓
-Audio + Visual Synthesis
-    ↓
-Timeline Coordination
-    ↓
-Video Rendering
-    ↓
-YouTube Distribution Assets
-```
-
----
-
-# Key Features
-
-## Narrative-Aware Scene Generation
-
-The system structures videos into semantic narrative units:
-
-* hook
-* introduction
-* core segments
-* transitions
-* conclusion
-
-Each scene carries metadata for:
-
-* pacing
-* energy
-* timing
-* visual intent
-* narration alignment
-
----
-
-## Intermediate Representation (IR) Architecture
-
-V3 introduces structured IR layers that coordinate communication between pipeline stages.
-
-### Scene IR
-
-Represents:
-
-* narration text
-* scene duration
-* visual requirements
-* motion metadata
-* audio bindings
-
-### AIR (Audio IR)
-
-Represents:
-
-* speech timing
-* beat alignment
-* pacing signals
-* synchronization data
-
-Benefits:
-
-* deterministic execution
-* debuggable pipelines
-* modular subsystem replacement
-* traceable data flow
-
----
-
-## Multimodal Synthesis
-
-The system coordinates:
-
-* text generation
-* voice synthesis
-* visual generation
-* motion effects
-* rendering timelines
-
-### Integrated Components
-
-* Edge-TTS narration
-* AI image generation
-* fallback B-roll system
-* MoviePy rendering
-* audio synchronization
-* cinematic motion effects
-
----
-
-## Temporal Coordination Engine
-
-A unified timeline system synchronizes:
-
-* narration duration
-* beat timing
-* visual cuts
-* transitions
-* motion pacing
-
-This creates more natural scene flow and cinematic consistency.
-
----
-
-## Hybrid Visual Pipeline
-
-Visual generation combines:
-
-* AI-generated imagery
-* deterministic fallback assets
-* storyboard-driven prompts
-* motion-enhanced compositions
-
-This hybrid strategy improves reliability while preserving generative flexibility.
-
----
-
-## Self-Healing Runtime
-
-The runtime validates:
-
-* FFmpeg installation
-* dependency availability
-* asset paths
-* generation outputs
-* rendering prerequisites
-
-Failures are isolated and handled gracefully to reduce pipeline crashes.
-
----
-
-# System Architecture Diagrams
-
-## Generative Pipeline
-
-![Generative Pipeline](docs/diagrams/pipeline.png)
-
----
-
-## Intermediate Representation (IR) Flow
-
-![IR Flow](docs/diagrams/ir_flow.png)
-
----
-
-## System Layers
-
-![System Layers](docs/diagrams/system_layers.png)
-
----
-
-## Coordinated System Architecture
-
-![Mermaid Diagram](docs/diagrams/mermaid-diagram.png)
-
-## High-Level Pipeline
-
-```text
-Input Topic / Script
-        ↓
-Narrative Intelligence Layer
-        ↓
-Scene Builder
-        ↓
-Storyboard Engine
-        ↓
-Temporal Coordination Engine
-        ↓
-Audio + Visual Synthesis
-        ↓
-Rendering Engine
-        ↓
-Distribution Pipeline
-```
-
----
-
-## Core System Modules
-
-| Module                 | Responsibility                               |
-| ---------------------- | -------------------------------------------- |
-| Narrative Intelligence | Extract pacing, tone, and structural signals |
-| Scene Builder          | Convert scripts into Scene IR objects        |
-| Storyboard Engine      | Define visual behavior and motion            |
-| Timeline Engine        | Synchronize narration and scene timing       |
-| TTS Engine             | Generate scene-aware narration               |
-| Visual Engine          | Create AI visuals and fallback imagery       |
-| Renderer               | Compose final video output                   |
-| Distribution Layer     | Generate YouTube metadata assets             |
-
----
-
-# Evolution of the System
-
-## V1 — Deterministic Pipeline
-
-### Characteristics
-
-* sequential script → video workflow
-* fixed scene structure
-* static visuals
-* reproducible rendering
-
-### Limitation
-
-Minimal semantic reasoning and adaptation.
-
----
-
-## V2 — Adaptive Media Pipeline
-
-### Improvements
-
-* scene-aware visuals
-* motion effects
-* B-roll prioritization
-* dynamic voice modulation
-* retry handling and validation
-
-### Limitation
-
-Pipeline stages remained loosely coordinated.
-
----
-
-## V3 — Structured Generative System
-
-### Major Architectural Shift
-
-V3 reframes video generation as a coordinated systems architecture rather than a linear pipeline.
-
-### New Capabilities
-
-* intermediate representations
-* narrative intelligence layer
-* semantic + execution timelines
-* beat-aware synchronization
-* modular orchestration
-* self-healing runtime validation
-
----
-
-# Repository Structure
-
-```text
-AI Media Studio/
-│
-├── core/                    # Core orchestration engines
-├── assets/                  # Audio, images, avatars, B-roll
-├── demo/                    # Rendered GIF demonstrations
-├── docs/                    # Architecture + research documents
-├── outputs/                 # Generated video exports
-├── benchmarks/              # Pipeline performance testing
-├── scripts/                 # Demo scripts / prompts
-├── main.py                  # Entry point
-└── requirements.txt         # Dependencies
-```
-
----
-
-# Research & Technical Documentation
-
-The repository includes architecture notes and system design papers documenting the progression from V1 → V3.
-
-## Included Documents
-
-| Document                          | Description                                     |
-| --------------------------------- | ----------------------------------------------- |
-| [V1 Paper](docs/paper_v1.md)                | Initial deterministic media pipeline concepts   |
-| [V2 Architecture](docs/v2_pipeline_explanation.md) | Adaptive pipeline evolution and coordination    |
-| [V3 System Design](docs/v3_system.md)               | Structured generative system architecture       |
-| [Architecture Overview](docs/architecture.md)           | Technical system overview and design principles |
-
-These documents explain the engineering rationale behind:
-
-* IR-driven architectures
-* multimodal synchronization
-* temporal orchestration
-* deterministic generative systems
-* modular AI pipelines
-
----
-
-# Technologies Used
-
-## Core Stack
-
-* Python
-* MoviePy
-* FFmpeg
-* Edge-TTS
-* PIL / Image Processing
-* Audio Processing Utilities
-
-## Architectural Concepts
-
-* Intermediate Representations (IRs)
-* Multimodal AI Coordination
-* Temporal Synchronization
-* Narrative Signal Extraction
-* Structured Media Pipelines
-* Deterministic System Design
-
----
-
-# Quick Start
-
-## Clone the Repository
+Regenerate both deterministic demonstrations with:
 
 ```bash
-git clone https://github.com/Tybent18/ai-media-studio
-cd ai-media-studio
+python tools/generate_demos.py
 ```
 
----
+## What changed
 
-## Install Dependencies
+| Capability | Previous V3 baseline | V4 |
+| --- | --- | --- |
+| Documented installation | Missing `requests`; startup fails | Declared dependencies and package metadata |
+| Movie rendering | MoviePy 1.x imports fail with current MoviePy | Direct FFmpeg renderer |
+| Tests | Collection fails before running | Real long/short render tests |
+| Output formats | Mode label without verified canvas | 1280×720 long and 720×1280 short |
+| Offline operation | Visual fallback only | Images, timed audio, avatar, and music |
+| Progress | Console messages | Seven visible production stages |
+| Cancellation | Not implemented | Active FFmpeg process termination and cleanup |
+| Editing | Script generated inside pipeline | Editable script/scene workspace |
+| Customization | Fixed presentation | Four interface/render themes and provider choices |
+| Avatar | Placeholder text written into an `.mp4` | Real transparent VTuber-style overlay |
+| Music | Analysis hooks but no reliable source | Original deterministic procedural soundtrack |
+
+## Desktop production workspace
 
 ```bash
-pip install -r requirements.txt
+python -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -e ".[dev]"
+python main.py --gui
 ```
 
----
+The workspace provides:
 
-## Run the Pipeline
+- long 16:9 and short 9:16 selection;
+- editable tagged scenes (`Hook:`, `Intro:`, `Point:`, `Outro:`);
+- image, voice, avatar, and music provider selectors;
+- Midnight, Ember, Forest, and Violet themes;
+- progress, safe cancellation, output opening, and project-manifest saving;
+- provider-neutral project data that other applications can consume.
+
+## Command-line rendering
+
+FFmpeg must be installed and available on `PATH`.
 
 ```bash
-python main.py --topic "The future of AI"
+python main.py --topic "Creative AI Explained" --mode long
+python main.py --topic "Three Debugging Habits" --mode short --theme violet
 ```
 
----
-
-## Output
+Each run creates a versioned output directory:
 
 ```text
-outputs/video.mp4
+output/<long|short>/<run-id>/
+├── <project-title>.mp4
+├── project.json
+└── provider-catalog.json
 ```
 
----
+The manifest records format, providers, theme, duration, output path, and scene-level evidence.
 
-# Design Principles
+## Provider architecture
 
-## Deterministic Execution
+| Media | Working local provider | Adapter/import contracts |
+| --- | --- | --- |
+| Images | Deterministic storyboard cards | OpenAI Image API, Google Imagen, Stability AI |
+| Voice | Timed preview audio | Edge TTS, ElevenLabs TTS and consent-gated cloning |
+| Avatar | Local illustrated VTuber host | Live2D import, HeyGen adapter |
+| Music | Deterministic original score | User-authorized Suno and Udio exports |
 
-Identical inputs produce reproducible outputs.
+Credentials belong in environment variables, never project files. Voice cloning must require proof of authorization; the system does not provide an impersonation shortcut.
 
----
+Official references used by the provider catalog:
 
-## Modular Architecture
+- [OpenAI image generation](https://platform.openai.com/docs/guides/image-generation)
+- [Google Imagen on Vertex AI](https://cloud.google.com/vertex-ai/generative-ai/docs/image/overview)
+- [Stability AI platform](https://platform.stability.ai/docs)
+- [ElevenLabs API](https://elevenlabs.io/docs/eleven-api/quickstart)
+- [ElevenLabs voice-cloning concepts](https://elevenlabs.io/docs/eleven-api/concepts/voice-cloning)
+- [Live2D](https://www.live2d.com/en/)
+- [HeyGen API](https://docs.heygen.com/)
 
-Subsystems are independently replaceable.
+## Architecture
 
----
+```text
+Editable project
+    ↓
+Scene planning
+    ↓
+Image provider ─ Voice provider ─ Avatar provider ─ Music provider
+    ↓
+FFmpeg scene rendering
+    ↓
+Long 16:9 / Short 9:16 composition
+    ↓
+MP4 + project manifest + provider manifest
+```
 
-## Explicit Data Flow
+Key modules:
 
-No hidden state between stages.
+| Module | Responsibility |
+| --- | --- |
+| `media_studio/models.py` | Typed project, scene, and format contracts |
+| `media_studio/providers.py` | Provider catalog and reliable local media generation |
+| `media_studio/renderer.py` | Cancellable FFmpeg rendering and audio mix |
+| `media_studio/pipeline.py` | Stage orchestration, manifests, and cleanup |
+| `media_studio/gui.py` | Customizable desktop editor and progress surface |
+| `tools/generate_demos.py` | Deterministic README demonstrations |
 
----
+The earlier `core/` implementation remains temporarily available for architectural comparison and migration. `main.py` routes new work through V4.
 
-## Failure Isolation
+## Verification
 
-Errors are contained at the module level.
+```bash
+pytest -q
+```
 
----
+The suite renders actual MP4 files and probes them with FFprobe. It validates both canvas formats, output audio/video streams, project manifests, provider contracts, scene limits, themes, and cancellation behavior.
 
-## Structured Orchestration
+## Current limitations
 
-The system behaves similarly to a media compiler with coordinated generation stages.
+- Local preview audio is timed rather than spoken narration; select or implement a network TTS adapter for speech.
+- The local avatar is a static VTuber-style overlay, not full Live2D rigging or lip sync.
+- Remote provider contracts are cataloged but not invoked without explicit adapters and credentials.
+- The scene editor is script-oriented rather than a multitrack nonlinear editor.
+- Direct publishing, channel authentication, and analytics are deferred to a later phase.
 
----
+## Next engineering milestones
 
-# Current Limitations
+1. Implement authenticated provider adapters behind the existing contracts.
+2. Add consent records and sample-quality checks for voice cloning.
+3. Add draggable scene ordering, per-scene duration controls, and media replacement.
+4. Add Live2D/VRM avatar import and audio-driven mouth cues.
+5. Add resumable render checkpoints and hardware-acceleration profiles.
+6. Add opt-in YouTube upload only after OAuth, review, and publish-confirmation controls exist.
 
-* image-based generation only (no native video diffusion)
-* limited distributed rendering support
-* lightweight avatar integration
-* mostly rule-based narrative reasoning
-* no real-time editing interface
-* no learned optimization models yet
+## License
 
----
-
-# Future Work
-
-Planned research and engineering directions:
-
-* diffusion-native video generation
-* reinforcement learning for pacing optimization
-* learned narrative planning systems
-* distributed rendering infrastructure
-* advanced avatar animation systems
-* real-time editing and orchestration UI
-* adaptive scene optimization
-
----
-
-# Why This Project Matters
-
-Most generative media systems focus solely on output quality.
-
-AI Media Studio instead focuses on:
-
-* orchestration
-* synchronization
-* modularity
-* traceability
-* controllable generation
-* systems-level coordination
-
-The project explores how AI media generation can be engineered as a structured computational system rather than a monolithic model.
-
----
-
-# Summary
-
-AI Media Studio (V3) is a research-oriented generative media system that combines:
-
-* narrative intelligence
-* multimodal synthesis
-* temporal orchestration
-* modular AI pipelines
-* deterministic rendering systems
-
-into a coordinated architecture capable of transforming text into fully rendered video content.
-
-It serves as both:
-
-* a functional AI media generation platform
-* a systems-design exploration into structured generative architectures
-
----
-
-# Author
-
-Developed as an independent systems engineering and AI media architecture project focused on multimodal orchestration, deterministic generation pipelines, and scalable AI-assisted content creation.
+[MIT](LICENSE)
