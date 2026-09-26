@@ -56,14 +56,15 @@ The Studio writes the exact credit into `video-description.txt`, records it in `
 
 ## Production demos
 
-### V5 rendered review proof
+### V5 rendered explainer proof
 
-This is a real vertical review rendered by the V5 pipeline with Piper neural narration, captions, motion, and the
-new audible procedural music mix—not a design mockup.
+This is a real vertical educational video rendered by the V5 pipeline with Piper neural narration, captions, motion,
+and the audible procedural music mix—not a design mockup. It uses a simple tax explainer so the production features
+are easy to understand at a glance.
 
-[Download the 12-second MP4 demo with voice and music](demo/v5/smoking-review-preview.mp4)
+[Download the complete MP4 demo with voice and music](demo/v5/taxes-in-under-a-minute.mp4)
 
-[![V5 rendered anime-review excerpt](demo/v5/smoking-review-preview.gif)](demo/v5/smoking-review-preview.mp4)
+[![V5 rendered taxes explainer](demo/v5/taxes-in-under-a-minute.gif)](demo/v5/taxes-in-under-a-minute.mp4)
 
 ### Earlier pipeline walkthroughs
 
@@ -75,10 +76,16 @@ new audible procedural music mix—not a design mockup.
 
 ![Short-form production](demo/v4/short-production.gif)
 
-Regenerate both deterministic demonstrations with:
+Regenerate the older deterministic interface demonstrations with:
 
 ```bash
 python tools/generate_demos.py
+```
+
+Regenerate the narrated tax video after installing Piper and downloading `en_US-lessac-medium` with:
+
+```bash
+python tools/generate_tax_demo.py
 ```
 
 ## What changed in V5
