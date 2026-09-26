@@ -124,7 +124,7 @@ class StudioApp(tk.Tk):
         self.vars, self.provider_maps = {}, {}
         defaults = {
             "image": "Local images and video B-roll",
-            "voice": "Piper neural narration",
+            "voice": "Microsoft Edge TTS",
             "avatar": "Local VTuber host",
             "music": "Procedural score",
         }
