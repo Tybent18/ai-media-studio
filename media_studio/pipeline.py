@@ -14,6 +14,7 @@ from .providers import (
     write_edge_narration,
     write_flite_narration,
     write_music,
+    write_piper_narration,
     write_silence,
 )
 from .renderer import render_video
@@ -67,8 +68,8 @@ class MediaPipeline:
         self.cancel_event.clear()
         supported = {
             "image_provider": {"local-card", "local-media"},
-            "voice_provider": {"silent-preview", "edge-tts", "flite"},
-            "music_provider": {"none", "procedural", "local-file"},
+            "voice_provider": {"silent-preview", "edge-tts", "flite", "piper"},
+            "music_provider": {"none", "procedural", "local-file", "youtube-audio-library"},
             "avatar_provider": {"local-vtuber", "none"},
         }
         for field, choices in supported.items():
@@ -87,11 +88,23 @@ class MediaPipeline:
             scenes = project.scenes or self.parse_script(project.script, project.format)
             if not scenes:
                 raise ValueError("Add at least one line of script")
+            if project.music_provider == "youtube-audio-library" and project.music_credit_card:
+                label = " — ".join(x for x in (project.music_title, project.music_artist) if x)
+                scenes.append(
+                    Scene(
+                        f"Music: {label or 'YouTube Audio Library track'}\nSource: {project.music_source}",
+                        "music-credit",
+                        3.0,
+                        title="MUSIC CREDIT",
+                    )
+                )
             for i, s in enumerate(scenes):
                 s.image_path = str(LocalMediaProvider().generate(s, project, i, work / "frames" / f"scene-{i:03d}.png"))
                 self._emit(f"Visual {i + 1}/{len(scenes)}", 0.1 + 0.18 * (i + 1) / len(scenes))
             for i, s in enumerate(scenes):
-                if project.voice_provider == "edge-tts":
+                if s.kind == "music-credit":
+                    s.audio_path = str(write_silence(work / "voice" / f"scene-{i:03d}.wav", s.duration))
+                elif project.voice_provider == "edge-tts":
                     audio, duration = write_edge_narration(
                         work / "voice" / f"scene-{i:03d}.mp3", s.text, project.voice, project.voice_rate
                     )
@@ -102,6 +115,12 @@ class MediaPipeline:
                         work / "voice" / f"scene-{i:03d}.wav",
                         s.text,
                         project.voice if project.voice in {"awb", "kal", "kal16", "rms", "slt"} else "slt",
+                    )
+                    s.audio_path = str(audio)
+                    s.duration = round(max(2.0, duration + 0.35), 2)
+                elif project.voice_provider == "piper":
+                    audio, duration = write_piper_narration(
+                        work / "voice" / f"scene-{i:03d}.wav", s.text, project.piper_model
                     )
                     s.audio_path = str(audio)
                     s.duration = round(max(2.0, duration + 0.35), 2)
@@ -117,7 +136,7 @@ class MediaPipeline:
             total = sum(s.duration for s in scenes)
             if project.music_provider == "procedural":
                 music = write_music(work / "music.wav", total, project.title)
-            elif project.music_provider == "local-file":
+            elif project.music_provider in {"local-file", "youtube-audio-library"}:
                 if not project.music_path or not Path(project.music_path).is_file():
                     raise ValueError("Choose an existing music file when using local-file music")
                 music = Path(project.music_path)
@@ -138,12 +157,27 @@ class MediaPipeline:
                 }
             )
             (root / "project.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+            description_path = None
+            if project.music_provider == "youtube-audio-library":
+                credit = project.music_attribution.strip() or "\n".join(
+                    x
+                    for x in (
+                        f"Music: {project.music_title}" if project.music_title else "",
+                        f"Artist: {project.music_artist}" if project.music_artist else "",
+                        f"Source: {project.music_source}" if project.music_source else "",
+                        f"License: {project.music_license}" if project.music_license else "",
+                    )
+                    if x
+                )
+                description_path = root / "video-description.txt"
+                description_path.write_text("MUSIC CREDIT\n" + credit + "\n", encoding="utf-8")
             export_catalog(root / "provider-catalog.json")
             shutil.rmtree(work, ignore_errors=True)
             return {
                 "video_path": str(output),
                 "manifest_path": str(root / "project.json"),
                 "provider_catalog": str(root / "provider-catalog.json"),
+                "description_path": str(description_path) if description_path else None,
                 "duration": round(total, 2),
                 "format": project.format.value,
             }
