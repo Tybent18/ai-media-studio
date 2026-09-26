@@ -21,6 +21,29 @@ python main.py --topic "My video" --script "Hook: Start strong.\nPoint: Show the
 
 You can pin a specific asset to a scene with `[media=path/to/file.mp4]`. Use `--music path/to/song.mp3` for music you own, `--voice en-US-AriaNeural` to change narrator, or `--silent` for an offline preview. The GUI exposes narration, B-roll, and music selection with `python main.py --gui`.
 
+## Natural offline narration with Piper
+
+```bash
+pip install '.[voice]'
+python main.py --topic "My video" --piper-model voices/en_US-lessac-medium.onnx
+```
+
+Piper voice models are separate downloads. Select the matching `.onnx` model in the GUI or pass it with `--piper-model`. The Studio never uploads narration text when Piper is selected.
+
+## YouTube Audio Library imports and credits
+
+Download the track yourself from YouTube Studio's Audio Library, then import the audio file and the track metadata:
+
+```bash
+python main.py --topic "My video" \
+  --youtube-audio music/track.mp3 \
+  --music-title "Track Name" \
+  --music-artist "Artist Name" \
+  --music-attribution "Exact attribution text copied from YouTube Audio Library"
+```
+
+The Studio writes the exact credit into `video-description.txt`, records it in `project.json`, and adds a short end-card credit. Some YouTube Audio Library tracks do not require attribution; Creative Commons tracks do. Always copy the exact attribution supplied by YouTube instead of inventing a generic ownership disclaimer.
+
 > Current boundary: V5 renders and packages videos locally. Direct YouTube upload and analytics remain intentionally deferred. Edge TTS needs an internet connection; choose `flite` for completely offline narration when FFmpeg includes libflite.
 
 ## Production demos
