@@ -1,10 +1,27 @@
-# AI Media Studio V4
+# AI Media Studio V5
 
-**Turn an editable script into a real long-form or vertical video through a visible, cancellable production pipeline.**
+**A free personal AI video maker for narrated 1080p YouTube videos and vertical social video.**
 
-AI Media Studio is a local-first orchestration workspace for YouTube videos and Shorts. V4 replaces the non-rendering legacy path with an FFmpeg pipeline that produces real MP4 files without requiring paid AI services. Image, voice, avatar, and music systems are provider contracts, so local fallbacks remain available while cloud integrations can be added without rewriting the renderer.
+AI Media Studio is a local-first orchestration workspace for YouTube videos and Shorts. It uses an FFmpeg pipeline that produces real MP4 files without requiring paid AI services. Image, voice, avatar, and music systems remain modular, so local fallbacks work while optional integrations can be added without rewriting the renderer.
 
-> Current boundary: V4 renders and packages videos locally. Direct YouTube upload and analytics are intentionally deferred. Remote provider entries describe adapter contracts; they are not fake integrations.
+V5 completes the free production path: real Edge TTS narration, user-owned image/video B-roll, burned captions, Ken Burns motion, fades, imported or procedural music, loudness normalization, and full-HD exports. Long-form renders at 1920×1080; vertical renders at 1080×1920.
+
+## Make a narrated YouTube video
+
+```bash
+pip install -r requirements.txt
+python main.py --topic "My video" --script "Hook: Start strong.\nPoint: Explain the idea.\nOutro: End clearly."
+```
+
+Add a folder of your own images and clips:
+
+```bash
+python main.py --topic "My video" --script "Hook: Start strong.\nPoint: Show the evidence." --media-dir assets/my-project
+```
+
+You can pin a specific asset to a scene with `[media=path/to/file.mp4]`. Use `--music path/to/song.mp3` for music you own, `--voice en-US-AriaNeural` to change narrator, or `--silent` for an offline preview. The GUI exposes narration, B-roll, and music selection with `python main.py --gui`.
+
+> Current boundary: V5 renders and packages videos locally. Direct YouTube upload and analytics remain intentionally deferred. Edge TTS needs an internet connection; every other default production component has a local fallback.
 
 ## Production demos
 
