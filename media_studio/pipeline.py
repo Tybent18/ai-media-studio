@@ -12,6 +12,7 @@ from .providers import (
     LocalMediaProvider,
     export_catalog,
     write_edge_narration,
+    write_flite_narration,
     write_music,
     write_silence,
 )
@@ -66,7 +67,7 @@ class MediaPipeline:
         self.cancel_event.clear()
         supported = {
             "image_provider": {"local-card", "local-media"},
-            "voice_provider": {"silent-preview", "edge-tts"},
+            "voice_provider": {"silent-preview", "edge-tts", "flite"},
             "music_provider": {"none", "procedural", "local-file"},
             "avatar_provider": {"local-vtuber", "none"},
         }
@@ -93,6 +94,14 @@ class MediaPipeline:
                 if project.voice_provider == "edge-tts":
                     audio, duration = write_edge_narration(
                         work / "voice" / f"scene-{i:03d}.mp3", s.text, project.voice, project.voice_rate
+                    )
+                    s.audio_path = str(audio)
+                    s.duration = round(max(2.0, duration + 0.35), 2)
+                elif project.voice_provider == "flite":
+                    audio, duration = write_flite_narration(
+                        work / "voice" / f"scene-{i:03d}.wav",
+                        s.text,
+                        project.voice if project.voice in {"awb", "kal", "kal16", "rms", "slt"} else "slt",
                     )
                     s.audio_path = str(audio)
                     s.duration = round(max(2.0, duration + 0.35), 2)
