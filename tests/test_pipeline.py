@@ -17,9 +17,11 @@ def test_parser_normalizes_modes():
     assert len(MediaPipeline.parse_script("\n".join(f"Point: {i}" for i in range(10)), VideoFormat.SHORT)) == 6
 
 
-@pytest.mark.parametrize("mode,size", [(VideoFormat.LONG, (1280, 720)), (VideoFormat.SHORT, (720, 1280))])
+@pytest.mark.parametrize("mode,size", [(VideoFormat.LONG, (1920, 1080)), (VideoFormat.SHORT, (1080, 1920))])
 def test_real_render_has_expected_canvas(tmp_path, mode, size):
-    result = MediaPipeline().run(ProjectSpec("Render proof", SCRIPT, mode, output_dir=tmp_path))
+    result = MediaPipeline().run(
+        ProjectSpec("Render proof", SCRIPT, mode, voice_provider="silent-preview", output_dir=tmp_path)
+    )
     path = Path(result["video_path"])
     assert path.exists() and path.stat().st_size > 1000
     info = probe_video(path)
@@ -47,7 +49,11 @@ def test_active_render_can_be_cancelled_and_cleaned(tmp_path):
     pipe = MediaPipeline(stop_during_render)
     holder["pipe"] = pipe
     with pytest.raises(PipelineCancelled):
-        pipe.run(ProjectSpec("Cancelled render", SCRIPT, VideoFormat.LONG, output_dir=tmp_path))
+        pipe.run(
+            ProjectSpec(
+                "Cancelled render", SCRIPT, VideoFormat.LONG, voice_provider="silent-preview", output_dir=tmp_path
+            )
+        )
     assert not list(tmp_path.rglob("*.mp4"))
 
 
@@ -59,4 +65,18 @@ def test_provider_catalog_has_local_fallbacks_and_remote_contracts():
 
 def test_uninstalled_remote_adapter_is_never_silently_faked(tmp_path):
     with pytest.raises(ValueError, match="not an installed adapter"):
-        MediaPipeline().run(ProjectSpec("Remote", SCRIPT, image_provider="openai-image", output_dir=tmp_path))
+        MediaPipeline().run(
+            ProjectSpec(
+                "Remote",
+                SCRIPT,
+                image_provider="openai-image",
+                voice_provider="silent-preview",
+                output_dir=tmp_path,
+            )
+        )
+
+
+def test_media_tags_are_parsed():
+    scene = MediaPipeline.parse_script("Point: Real footage [media=clips/example.mp4]", VideoFormat.LONG)[0]
+    assert scene.image_path == "clips/example.mp4"
+    assert scene.text == "Real footage"
