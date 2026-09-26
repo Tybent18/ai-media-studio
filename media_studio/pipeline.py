@@ -7,7 +7,14 @@ import uuid
 from pathlib import Path
 
 from .models import ProjectSpec, Scene, VideoFormat
-from .providers import LocalAvatarProvider, LocalCardProvider, export_catalog, write_music, write_silence
+from .providers import (
+    LocalAvatarProvider,
+    LocalMediaProvider,
+    export_catalog,
+    write_edge_narration,
+    write_music,
+    write_silence,
+)
 from .renderer import render_video
 
 
@@ -39,6 +46,7 @@ class MediaPipeline:
     @staticmethod
     def parse_script(text, mode):
         tagged = re.compile(r"^(hook|intro|point|section|outro)\s*:\s*(.+)$", re.I)
+        asset = re.compile(r"\s*\[media=(.+?)\]\s*$", re.I)
         scenes = []
         for raw in text.splitlines():
             line = raw.strip()
@@ -46,17 +54,20 @@ class MediaPipeline:
                 continue
             match = tagged.match(line)
             kind, body = (match.group(1).lower(), match.group(2).strip()) if match else ("point", line)
+            media = asset.search(body)
+            image_path = media.group(1).strip() if media else None
+            body = asset.sub("", body).strip()
             duration = max(2.4, min(8, len(body.split()) / 2.6))
             duration = max(2, min(5, duration)) if mode is VideoFormat.SHORT else duration
-            scenes.append(Scene(body, kind, round(duration, 2), title=kind.upper()))
+            scenes.append(Scene(body, kind, round(duration, 2), image_path=image_path, title=kind.upper()))
         return scenes[: 6 if mode is VideoFormat.SHORT else 30]
 
     def run(self, project: ProjectSpec):
         self.cancel_event.clear()
         supported = {
-            "image_provider": {"local-card"},
-            "voice_provider": {"silent-preview"},
-            "music_provider": {"none", "procedural"},
+            "image_provider": {"local-card", "local-media"},
+            "voice_provider": {"silent-preview", "edge-tts"},
+            "music_provider": {"none", "procedural", "local-file"},
             "avatar_provider": {"local-vtuber", "none"},
         }
         for field, choices in supported.items():
@@ -76,10 +87,17 @@ class MediaPipeline:
             if not scenes:
                 raise ValueError("Add at least one line of script")
             for i, s in enumerate(scenes):
-                s.image_path = str(LocalCardProvider().generate(s, project, i, work / "frames" / f"scene-{i:03d}.png"))
+                s.image_path = str(LocalMediaProvider().generate(s, project, i, work / "frames" / f"scene-{i:03d}.png"))
                 self._emit(f"Visual {i + 1}/{len(scenes)}", 0.1 + 0.18 * (i + 1) / len(scenes))
             for i, s in enumerate(scenes):
-                s.audio_path = str(write_silence(work / "voice" / f"scene-{i:03d}.wav", s.duration))
+                if project.voice_provider == "edge-tts":
+                    audio, duration = write_edge_narration(
+                        work / "voice" / f"scene-{i:03d}.mp3", s.text, project.voice, project.voice_rate
+                    )
+                    s.audio_path = str(audio)
+                    s.duration = round(max(2.0, duration + 0.35), 2)
+                else:
+                    s.audio_path = str(write_silence(work / "voice" / f"scene-{i:03d}.wav", s.duration))
                 self._emit(f"Voice track {i + 1}/{len(scenes)}", 0.3 + 0.12 * (i + 1) / len(scenes))
             avatar = (
                 LocalAvatarProvider().generate(project, work / "avatar.png")
@@ -88,11 +106,14 @@ class MediaPipeline:
             )
             self._emit("Avatar prepared", 0.46)
             total = sum(s.duration for s in scenes)
-            music = (
-                write_music(work / "music.wav", total, project.title)
-                if project.music_provider == "procedural"
-                else None
-            )
+            if project.music_provider == "procedural":
+                music = write_music(work / "music.wav", total, project.title)
+            elif project.music_provider == "local-file":
+                if not project.music_path or not Path(project.music_path).is_file():
+                    raise ValueError("Choose an existing music file when using local-file music")
+                music = Path(project.music_path)
+            else:
+                music = None
             self._emit("Music prepared", 0.52)
             slug = re.sub(r"[^a-z0-9]+", "-", project.title.lower()).strip("-") or "video"
             output = render_video(
