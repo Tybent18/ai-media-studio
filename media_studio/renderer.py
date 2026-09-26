@@ -69,7 +69,7 @@ def _caption_image(frame, target, text):
     return target
 
 
-def render_video(project, scenes, workspace, output, music, avatar, cancel, progress, hook=None):
+def render_video(project, scenes, workspace, output, music, avatar, cancel, progress, hook=None, preview=None):
     ffmpeg = shutil.which("ffmpeg")
     if not ffmpeg:
         raise RenderError("FFmpeg is required and must be available on PATH")
@@ -132,6 +132,8 @@ def render_video(project, scenes, workspace, output, music, avatar, cancel, prog
                 "veryfast",
                 "-c:a",
                 "aac",
+                "-af",
+                f"volume={project.voice_volume}",
                 "-shortest",
                 str(segment),
             ],
@@ -139,6 +141,8 @@ def render_video(project, scenes, workspace, output, music, avatar, cancel, prog
             hook,
         )
         segments.append(segment)
+        if preview:
+            preview(frame)
         progress(f"Rendered scene {i + 1}/{len(scenes)}", 0.55 + 0.3 * (i + 1) / len(scenes))
     listing = workspace / "segments.txt"
     listing.write_text("".join(f"file '{p.resolve()}'\n" for p in segments), encoding="utf-8")
