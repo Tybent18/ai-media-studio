@@ -5,7 +5,7 @@ import pytest
 
 from media_studio.models import ProjectSpec, VideoFormat
 from media_studio.pipeline import MediaPipeline, PipelineCancelled, probe_video
-from media_studio.providers import PROVIDER_CATALOG
+from media_studio.providers import PROVIDER_CATALOG, write_silence
 
 SCRIPT = """Hook: Start with a sharp question.
 Point: Explain the system with visible evidence.
@@ -61,6 +61,8 @@ def test_provider_catalog_has_local_fallbacks_and_remote_contracts():
     assert {x.mode for x in PROVIDER_CATALOG["image"]} >= {"offline", "adapter"}
     assert any(x.key == "elevenlabs" for x in PROVIDER_CATALOG["voice"])
     assert any(x.key == "local-vtuber" for x in PROVIDER_CATALOG["avatar"])
+    assert any(x.key == "piper" for x in PROVIDER_CATALOG["voice"])
+    assert any(x.key == "youtube-audio-library" for x in PROVIDER_CATALOG["music"])
 
 
 def test_uninstalled_remote_adapter_is_never_silently_faked(tmp_path):
@@ -80,3 +82,23 @@ def test_media_tags_are_parsed():
     scene = MediaPipeline.parse_script("Point: Real footage [media=clips/example.mp4]", VideoFormat.LONG)[0]
     assert scene.image_path == "clips/example.mp4"
     assert scene.text == "Real footage"
+
+
+def test_youtube_audio_library_credit_is_packaged(tmp_path):
+    music = write_silence(tmp_path / "track.wav", 8)
+    project = ProjectSpec(
+        "Credit proof",
+        "Point: A short narrated scene.",
+        VideoFormat.SHORT,
+        voice_provider="silent-preview",
+        music_provider="youtube-audio-library",
+        music_path=music,
+        music_title="Example Track",
+        music_artist="Example Artist",
+        music_attribution="Example Track by Example Artist is licensed under CC BY 4.0.",
+        output_dir=tmp_path / "renders",
+    )
+    result = MediaPipeline().run(project)
+    description = Path(result["description_path"]).read_text(encoding="utf-8")
+    assert "Example Track" in description
+    assert "CC BY 4.0" in description
