@@ -290,13 +290,12 @@ def write_flite_narration(path: Path, text: str, voice: str = "slt"):
 def write_piper_narration(path: Path, text: str, model: Path):
     """Generate natural neural narration locally with a Piper ONNX voice model."""
     executable = shutil.which("piper")
-    if not executable:
-        raise RuntimeError("Piper narration requires the piper-tts package: pip install piper-tts")
+    command = [executable] if executable else [os.sys.executable, "-m", "piper"]
     if not model or not Path(model).is_file():
         raise RuntimeError("Choose a downloaded Piper .onnx voice model")
     path.parent.mkdir(parents=True, exist_ok=True)
     result = subprocess.run(
-        [executable, "--model", str(model), "--output_file", str(path)],
+        [*command, "--model", str(model), "--output_file", str(path), "--sentence-silence", "0.12"],
         input=text,
         capture_output=True,
         text=True,
@@ -339,6 +338,7 @@ def write_silence(path, duration, rate=44100):
 
 
 def write_music(path, duration, seed_text, rate=44100):
+    """Write a clearly audible, original synth score without copyrighted samples."""
     path.parent.mkdir(parents=True, exist_ok=True)
     seed = int(hashlib.sha256(seed_text.encode()).hexdigest()[:8], 16)
     root = [110, 130.81, 146.83, 164.81][seed % 4]
@@ -350,9 +350,19 @@ def write_music(path, duration, seed_text, rate=44100):
             buf = []
             for i in range(min(rate, total - start)):
                 t = (start + i) / rate
+                beat = t % 2
                 f = notes[int(t / 2) % 4]
-                env = min(1, (t % 2) / 0.12) * min(1, (2 - t % 2) / 0.2)
-                value = int(1500 * env * (math.sin(2 * math.pi * f * t) + 0.3 * math.sin(4 * math.pi * f * t)))
+                env = min(1, beat / 0.10) * min(1, (2 - beat) / 0.28)
+                pad = 0.58 * math.sin(2 * math.pi * (f / 2) * t)
+                lead = env * (
+                    0.72 * math.sin(2 * math.pi * f * t)
+                    + 0.22 * math.sin(4 * math.pi * f * t)
+                )
+                pulse_phase = t % 0.5
+                pulse_env = math.exp(-pulse_phase * 13)
+                pulse = 0.34 * pulse_env * math.sin(2 * math.pi * (root / 2) * t)
+                value = int(7200 * (pad + lead + pulse))
+                value = max(-32767, min(32767, value))
                 buf.append(struct.pack("<h", value))
             out.writeframesraw(b"".join(buf))
     return path
