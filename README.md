@@ -4,13 +4,20 @@
 
 AI Media Studio is a local-first orchestration workspace for YouTube videos and Shorts. It uses an FFmpeg pipeline that produces real MP4 files without requiring paid AI services. Image, voice, avatar, and music systems remain modular, so local fallbacks work while optional integrations can be added without rewriting the renderer.
 
-V5 completes the free production path: real Edge TTS narration, fully offline Flite narration, user-owned image/video B-roll, burned captions, Ken Burns motion, fades, imported or procedural music, loudness normalization, and full-HD exports. Long-form renders at 1920×1080; vertical renders at 1080×1920.
+V5 completes the free production path: neural Piper and Edge TTS narration, user-owned image/video B-roll,
+burned captions, Ken Burns motion, fades, imported or original procedural music, independent voice/music gain,
+loudness normalization, and full-HD exports. Long-form renders at 1920×1080; vertical renders at 1080×1920.
+
+The desktop workspace now includes a script editor, editable scene list, per-scene media and duration controls,
+live render-frame monitoring, an embedded visual MP4 preview, and four selectable interface styles. Finished videos
+can also open in the operating system player for synchronized audio playback.
 
 ## Make a narrated YouTube video
 
 ```bash
 pip install -r requirements.txt
-python main.py --topic "My video" --script "Hook: Start strong.\nPoint: Explain the idea.\nOutro: End clearly."
+python main.py --topic "My video" --script "Hook: Start strong.\nPoint: Explain the idea.\nOutro: End clearly." \
+  --voice-volume 1.0 --music-volume 0.24
 ```
 
 Add a folder of your own images and clips:
@@ -44,7 +51,8 @@ python main.py --topic "My video" \
 
 The Studio writes the exact credit into `video-description.txt`, records it in `project.json`, and adds a short end-card credit. Some YouTube Audio Library tracks do not require attribution; Creative Commons tracks do. Always copy the exact attribution supplied by YouTube instead of inventing a generic ownership disclaimer.
 
-> Current boundary: V5 renders and packages videos locally. Direct YouTube upload and analytics remain intentionally deferred. Edge TTS needs an internet connection; choose `flite` for completely offline narration when FFmpeg includes libflite.
+> Current boundary: V5 renders and packages videos locally. Direct YouTube upload and analytics remain intentionally
+> deferred. Edge TTS needs an internet connection; Piper provides the recommended neural offline narration path.
 
 ## Production demos
 
@@ -62,21 +70,18 @@ Regenerate both deterministic demonstrations with:
 python tools/generate_demos.py
 ```
 
-## What changed
+## What changed in V5
 
-| Capability | Previous V3 baseline | V4 |
+| Capability | V4 | V5 |
 | --- | --- | --- |
-| Documented installation | Missing `requests`; startup fails | Declared dependencies and package metadata |
-| Movie rendering | MoviePy 1.x imports fail with current MoviePy | Direct FFmpeg renderer |
-| Tests | Collection fails before running | Real long/short render tests |
-| Output formats | Mode label without verified canvas | 1280×720 long and 720×1280 short |
-| Offline operation | Visual fallback only | Images, timed audio, avatar, and music |
-| Progress | Console messages | Seven visible production stages |
-| Cancellation | Not implemented | Active FFmpeg process termination and cleanup |
-| Editing | Script generated inside pipeline | Editable script/scene workspace |
-| Customization | Fixed presentation | Four interface/render themes and provider choices |
-| Avatar | Placeholder text written into an `.mp4` | Real transparent VTuber-style overlay |
-| Music | Analysis hooks but no reliable source | Original deterministic procedural soundtrack |
+| Output | 1280×720 / 720×1280 | 1920×1080 / 1080×1920 at 30 fps |
+| Narration | Timed silence fallback | Piper neural, Edge neural, Flite, or silent preview |
+| Music | Quiet procedural bed | Fuller original score, local imports, and Audio Library credits |
+| Mixing | Fixed mix | Independent voice and music levels plus loudness normalization |
+| Editing | Script-only workspace | Editable scenes, duration, text, kind, and scene media |
+| Preview | Output path only | Live render frames and embedded finished-video visuals |
+| Interface | Fixed theme | Four selectable application styles and friendly provider names |
+| Media | Generated cards | User-owned images and looping video B-roll |
 
 ## Desktop production workspace
 
@@ -91,8 +96,12 @@ The workspace provides:
 
 - long 16:9 and short 9:16 selection;
 - editable tagged scenes (`Hook:`, `Intro:`, `Point:`, `Outro:`);
+- a scene editor for text, type, duration, and media replacement;
 - image, voice, avatar, and music provider selectors;
-- Midnight, Ember, Forest, and Violet themes;
+- Obsidian Neon, Violet Cinema, Ember Studio, and Arctic Light interface styles;
+- separate voice and music volume controls;
+- live render-frame monitoring and embedded visual playback;
+- full playback with audio through the operating system player;
 - progress, safe cancellation, output opening, and project-manifest saving;
 - provider-neutral project data that other applications can consume.
 
@@ -121,9 +130,9 @@ The manifest records format, providers, theme, duration, output path, and scene-
 | Media | Working local provider | Adapter/import contracts |
 | --- | --- | --- |
 | Images | Deterministic storyboard cards | OpenAI Image API, Google Imagen, Stability AI |
-| Voice | Timed preview audio | Edge TTS, ElevenLabs TTS and consent-gated cloning |
+| Voice | Piper neural, Edge TTS, Flite, silent preview | ElevenLabs TTS and consent-gated cloning |
 | Avatar | Local illustrated VTuber host | Live2D import, HeyGen adapter |
-| Music | Deterministic original score | User-authorized Suno and Udio exports |
+| Music | Original procedural score and local files | YouTube Audio Library, Suno, and Udio imports |
 
 Credentials belong in environment variables, never project files. Voice cloning must require proof of authorization; the system does not provide an impersonation shortcut.
 
@@ -164,7 +173,8 @@ Key modules:
 | `media_studio/gui.py` | Customizable desktop editor and progress surface |
 | `tools/generate_demos.py` | Deterministic README demonstrations |
 
-The earlier `core/` implementation remains temporarily available for architectural comparison and migration. `main.py` routes new work through V4.
+The earlier `core/` implementation remains temporarily available for architectural comparison and migration. `main.py`
+routes new work through V5.
 
 ## Verification
 
@@ -176,17 +186,17 @@ The suite renders actual MP4 files and probes them with FFprobe. It validates bo
 
 ## Current limitations
 
-- Local preview audio is timed rather than spoken narration; select or implement a network TTS adapter for speech.
+- Embedded playback is visual; use **Open with sound** for synchronized audio playback in the system player.
 - The local avatar is a static VTuber-style overlay, not full Live2D rigging or lip sync.
 - Remote provider contracts are cataloged but not invoked without explicit adapters and credentials.
-- The scene editor is script-oriented rather than a multitrack nonlinear editor.
+- Scene edits require a new render; this is not yet a frame-accurate multitrack nonlinear editor.
 - Direct publishing, channel authentication, and analytics are deferred to a later phase.
 
 ## Next engineering milestones
 
 1. Implement authenticated provider adapters behind the existing contracts.
 2. Add consent records and sample-quality checks for voice cloning.
-3. Add draggable scene ordering, per-scene duration controls, and media replacement.
+3. Add draggable scene ordering and a frame-accurate timeline with trim handles.
 4. Add Live2D/VRM avatar import and audio-driven mouth cues.
 5. Add resumable render checkpoints and hardware-acceleration profiles.
 6. Add opt-in YouTube upload only after OAuth, review, and publish-confirmation controls exist.
