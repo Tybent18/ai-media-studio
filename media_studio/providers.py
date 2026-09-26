@@ -3,7 +3,9 @@ import hashlib
 import json
 import math
 import os
+import shutil
 import struct
+import subprocess
 import textwrap
 import wave
 from dataclasses import asdict, dataclass
@@ -78,6 +80,14 @@ PROVIDER_CATALOG = {
             None,
             "Network narration adapter.",
             "https://github.com/rany2/edge-tts",
+        ),
+        ProviderSpec(
+            "flite",
+            "Offline Flite narration",
+            "offline",
+            None,
+            "Fully offline narration through FFmpeg's libflite filter.",
+            "https://ffmpeg.org/ffmpeg-filters.html#flite",
         ),
         ProviderSpec(
             "elevenlabs",
@@ -229,6 +239,35 @@ def write_edge_narration(path: Path, text: str, voice: str, rate: str = "+0%"):
         asyncio.run(synthesize())
     except Exception as exc:
         raise RuntimeError(f"Edge narration failed: {exc}") from exc
+    return path, probe_duration(path)
+
+
+def write_flite_narration(path: Path, text: str, voice: str = "slt"):
+    """Generate narration completely offline when FFmpeg includes libflite."""
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        raise RuntimeError("Offline narration requires FFmpeg on PATH")
+    clean = text.replace("'", "").replace(":", " - ")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    result = subprocess.run(
+        [
+            ffmpeg,
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            f"flite=text='{clean}':voice={voice}",
+            "-ar",
+            "44100",
+            str(path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode:
+        raise RuntimeError("This FFmpeg build does not provide working Flite narration")
     return path, probe_duration(path)
 
 
