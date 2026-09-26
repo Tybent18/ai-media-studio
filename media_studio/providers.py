@@ -90,6 +90,14 @@ PROVIDER_CATALOG = {
             "https://ffmpeg.org/ffmpeg-filters.html#flite",
         ),
         ProviderSpec(
+            "piper",
+            "Piper neural narration",
+            "offline",
+            None,
+            "Natural offline narration using a user-installed Piper voice model.",
+            "https://github.com/rhasspy/piper",
+        ),
+        ProviderSpec(
             "elevenlabs",
             "ElevenLabs",
             "adapter",
@@ -109,6 +117,14 @@ PROVIDER_CATALOG = {
             None,
             "User-owned WAV, MP3, M4A, AAC, or FLAC soundtrack.",
             "built-in",
+        ),
+        ProviderSpec(
+            "youtube-audio-library",
+            "YouTube Audio Library import",
+            "import",
+            None,
+            "Imported Audio Library download with preserved attribution metadata.",
+            "https://support.google.com/youtube/answer/3376882",
         ),
         ProviderSpec(
             "suno-export",
@@ -268,6 +284,25 @@ def write_flite_narration(path: Path, text: str, voice: str = "slt"):
     )
     if result.returncode:
         raise RuntimeError("This FFmpeg build does not provide working Flite narration")
+    return path, probe_duration(path)
+
+
+def write_piper_narration(path: Path, text: str, model: Path):
+    """Generate natural neural narration locally with a Piper ONNX voice model."""
+    executable = shutil.which("piper")
+    if not executable:
+        raise RuntimeError("Piper narration requires the piper-tts package: pip install piper-tts")
+    if not model or not Path(model).is_file():
+        raise RuntimeError("Choose a downloaded Piper .onnx voice model")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    result = subprocess.run(
+        [executable, "--model", str(model), "--output_file", str(path)],
+        input=text,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode:
+        raise RuntimeError(f"Piper narration failed: {result.stderr.strip()}")
     return path, probe_duration(path)
 
 
