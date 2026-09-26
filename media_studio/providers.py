@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import json
 import math
@@ -29,9 +30,17 @@ PROVIDER_CATALOG = {
             "local-card", "Local storyboard cards", "offline", None, "Deterministic test/demo fallback.", "built-in"
         ),
         ProviderSpec(
+            "local-media",
+            "Local images and video B-roll",
+            "offline",
+            None,
+            "User-owned media folder or per-scene media tags.",
+            "built-in",
+        ),
+        ProviderSpec(
             "openai-image",
             "OpenAI Image API",
-            "adapter",
+            "free-network",
             "OPENAI_API_KEY",
             "Generation and editing contract.",
             "https://platform.openai.com/docs/guides/image-generation",
@@ -82,6 +91,14 @@ PROVIDER_CATALOG = {
     "music": [
         ProviderSpec(
             "procedural", "Procedural score", "offline", None, "Original deterministic ambient score.", "built-in"
+        ),
+        ProviderSpec(
+            "local-file",
+            "Local music file",
+            "offline",
+            None,
+            "User-owned WAV, MP3, M4A, AAC, or FLAC soundtrack.",
+            "built-in",
         ),
         ProviderSpec(
             "suno-export",
@@ -168,6 +185,51 @@ class LocalCardProvider:
         target.parent.mkdir(parents=True, exist_ok=True)
         im.save(target)
         return target
+
+
+class LocalMediaProvider:
+    """Resolve user-owned images or video clips without paid services."""
+
+    EXTENSIONS = (".png", ".jpg", ".jpeg", ".webp", ".mp4", ".mov", ".mkv", ".webm")
+
+    def generate(self, scene: Scene, project: ProjectSpec, index: int, target: Path):
+        if scene.image_path and Path(scene.image_path).is_file():
+            return Path(scene.image_path)
+        if project.media_dir and Path(project.media_dir).is_dir():
+            files = sorted(p for p in Path(project.media_dir).iterdir() if p.suffix.lower() in self.EXTENSIONS)
+            if files:
+                return files[index % len(files)]
+        return LocalCardProvider().generate(scene, project, index, target)
+
+
+def probe_duration(path: Path) -> float:
+    import subprocess
+
+    result = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nk=1:nw=1", str(path)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return float(result.stdout.strip())
+
+
+def write_edge_narration(path: Path, text: str, voice: str, rate: str = "+0%"):
+    """Generate free narration through Edge TTS and return its measured duration."""
+    try:
+        import edge_tts
+    except ImportError as exc:
+        raise RuntimeError("Edge narration requires: pip install edge-tts") from exc
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    async def synthesize():
+        await edge_tts.Communicate(text=text, voice=voice, rate=rate).save(str(path))
+
+    try:
+        asyncio.run(synthesize())
+    except Exception as exc:
+        raise RuntimeError(f"Edge narration failed: {exc}") from exc
+    return path, probe_duration(path)
 
 
 class LocalAvatarProvider:
