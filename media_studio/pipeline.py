@@ -27,8 +27,9 @@ class PipelineCancelled(RuntimeError):
 class MediaPipeline:
     STAGES = ("plan", "visuals", "voice", "avatar", "music", "render", "package")
 
-    def __init__(self, progress=None):
+    def __init__(self, progress=None, preview=None):
         self.progress = progress or (lambda m, p: None)
+        self.preview = preview or (lambda path: None)
         self.cancel_event = threading.Event()
         self._process = None
 
@@ -100,6 +101,7 @@ class MediaPipeline:
                 )
             for i, s in enumerate(scenes):
                 s.image_path = str(LocalMediaProvider().generate(s, project, i, work / "frames" / f"scene-{i:03d}.png"))
+                self.preview(s.image_path)
                 self._emit(f"Visual {i + 1}/{len(scenes)}", 0.1 + 0.18 * (i + 1) / len(scenes))
             for i, s in enumerate(scenes):
                 if s.kind == "music-credit":
@@ -145,7 +147,16 @@ class MediaPipeline:
             self._emit("Music prepared", 0.52)
             slug = re.sub(r"[^a-z0-9]+", "-", project.title.lower()).strip("-") or "video"
             output = render_video(
-                project, scenes, work, root / f"{slug}.mp4", music, avatar, self.cancel_event, self._emit, self._hook
+                project,
+                scenes,
+                work,
+                root / f"{slug}.mp4",
+                music,
+                avatar,
+                self.cancel_event,
+                self._emit,
+                self._hook,
+                self.preview,
             )
             manifest = project.manifest()
             manifest.update(
