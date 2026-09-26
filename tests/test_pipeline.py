@@ -84,6 +84,12 @@ def test_media_tags_are_parsed():
     assert scene.text == "Real footage"
 
 
+def test_audio_levels_are_serialized():
+    manifest = ProjectSpec("Levels", SCRIPT, voice_volume=1.15, music_volume=0.27).manifest()
+    assert manifest["voice_volume"] == 1.15
+    assert manifest["music_volume"] == 0.27
+
+
 def test_youtube_audio_library_credit_is_packaged(tmp_path):
     music = write_silence(tmp_path / "track.wav", 8)
     project = ProjectSpec(
