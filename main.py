@@ -15,6 +15,7 @@ def main():
     p.add_argument("--theme", choices=["midnight", "ember", "forest", "violet"], default="midnight")
     p.add_argument("--voice", default="en-US-GuyNeural", help="Edge TTS voice name")
     p.add_argument("--voice-rate", default="+0%")
+    p.add_argument("--voice-volume", type=float, default=1.0, help="Narration gain, where 1.0 is 100 percent")
     p.add_argument("--piper-model", help="Path to a downloaded Piper .onnx voice model")
     p.add_argument("--silent", action="store_true", help="Use a silent preview instead of narration")
     p.add_argument("--media-dir", help="Folder of user-owned images/video B-roll")
@@ -24,6 +25,7 @@ def main():
     p.add_argument("--music-artist", default="")
     p.add_argument("--music-attribution", default="", help="Exact attribution text copied from Audio Library")
     p.add_argument("--music-source", default="YouTube Audio Library")
+    p.add_argument("--music-volume", type=float, default=0.24, help="Music gain, where 0.24 is 24 percent")
     p.add_argument("--no-captions", action="store_true")
     a = p.parse_args()
     if a.gui or not a.topic:
@@ -45,6 +47,7 @@ def main():
             voice=a.voice,
             voice_rate=a.voice_rate,
             piper_model=a.piper_model,
+            voice_volume=max(0, a.voice_volume),
             image_provider="local-media" if a.media_dir else "local-card",
             media_dir=a.media_dir,
             music_provider="youtube-audio-library" if a.youtube_audio else "local-file" if a.music else "procedural",
@@ -53,6 +56,7 @@ def main():
             music_artist=a.music_artist,
             music_attribution=a.music_attribution,
             music_source=a.music_source,
+            music_volume=max(0, a.music_volume),
             captions=not a.no_captions,
         )
     )
