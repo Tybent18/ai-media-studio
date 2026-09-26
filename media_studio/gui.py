@@ -6,7 +6,7 @@ import sys
 import threading
 import tkinter as tk
 from pathlib import Path
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, messagebox, simpledialog, ttk
 
 from .models import ProjectSpec, VideoFormat
 from .pipeline import MediaPipeline, PipelineCancelled
@@ -81,6 +81,7 @@ class StudioApp(tk.Tk):
             ttk.Combobox(left, textvariable=self.vars[kind], values=vals, state="readonly").pack(fill="x", padx=16)
         self.vars["voice"].set("edge-tts")
         self.voice_var = tk.StringVar(value="en-US-GuyNeural")
+        self.piper_model_var = tk.StringVar()
         tk.Entry(left, textvariable=self.voice_var, bg="#091426", fg="#f8fafc", relief="flat").pack(
             fill="x", padx=16, pady=(6, 0), ipady=5
         )
@@ -89,7 +90,16 @@ class StudioApp(tk.Tk):
         ttk.Button(left, text="Choose media/B-roll folder", command=self.choose_media_dir).pack(
             fill="x", padx=16, pady=(10, 0)
         )
+        ttk.Button(left, text="Choose Piper voice model", command=self.choose_piper_model).pack(
+            fill="x", padx=16, pady=(6, 0)
+        )
         ttk.Button(left, text="Choose optional music", command=self.choose_music).pack(fill="x", padx=16, pady=(6, 0))
+        ttk.Button(left, text="Import YouTube Audio Library track", command=self.choose_youtube_audio).pack(
+            fill="x", padx=16, pady=(6, 0)
+        )
+        self.music_title_var = tk.StringVar()
+        self.music_artist_var = tk.StringVar()
+        self.music_attribution_var = tk.StringVar()
         self.label(left, "THEME")
         self.theme_var = tk.StringVar(value="midnight")
         theme_picker = ttk.Combobox(left, textvariable=self.theme_var, values=list(THEMES), state="readonly")
@@ -151,8 +161,12 @@ class StudioApp(tk.Tk):
             avatar_provider=self.vars["avatar"].get(),
             theme=self.theme_var.get(),
             voice=self.voice_var.get().strip() or "en-US-GuyNeural",
+            piper_model=Path(self.piper_model_var.get()) if self.piper_model_var.get() else None,
             media_dir=Path(self.media_dir_var.get()) if self.media_dir_var.get() else None,
             music_path=Path(self.music_path_var.get()) if self.music_path_var.get() else None,
+            music_title=self.music_title_var.get(),
+            music_artist=self.music_artist_var.get(),
+            music_attribution=self.music_attribution_var.get(),
         )
 
     def choose_media_dir(self):
@@ -168,6 +182,34 @@ class StudioApp(tk.Tk):
         if selected:
             self.music_path_var.set(selected)
             self.vars["music"].set("local-file")
+
+    def choose_piper_model(self):
+        selected = filedialog.askopenfilename(
+            title="Choose Piper voice model", filetypes=[("Piper ONNX model", "*.onnx"), ("All", "*.*")]
+        )
+        if selected:
+            self.piper_model_var.set(selected)
+            self.vars["voice"].set("piper")
+
+    def choose_youtube_audio(self):
+        selected = filedialog.askopenfilename(
+            title="Choose a track downloaded from YouTube Audio Library",
+            filetypes=[("Audio", "*.mp3 *.wav *.m4a *.aac *.flac"), ("All", "*.*")],
+        )
+        if not selected:
+            return
+        self.music_path_var.set(selected)
+        self.vars["music"].set("youtube-audio-library")
+        self.music_title_var.set(simpledialog.askstring("Track title", "Audio Library track title:") or "")
+        self.music_artist_var.set(simpledialog.askstring("Artist", "Audio Library artist name:") or "")
+        self.music_attribution_var.set(
+            simpledialog.askstring(
+                "Attribution",
+                "Paste the exact attribution text copied from YouTube Audio Library. "
+                "Leave blank only when the track says attribution is not required.",
+            )
+            or ""
+        )
 
     def apply_theme(self, _event=None):
         bg, panel, accent = THEMES[self.theme_var.get()]
