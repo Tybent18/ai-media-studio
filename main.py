@@ -15,9 +15,15 @@ def main():
     p.add_argument("--theme", choices=["midnight", "ember", "forest", "violet"], default="midnight")
     p.add_argument("--voice", default="en-US-GuyNeural", help="Edge TTS voice name")
     p.add_argument("--voice-rate", default="+0%")
+    p.add_argument("--piper-model", help="Path to a downloaded Piper .onnx voice model")
     p.add_argument("--silent", action="store_true", help="Use a silent preview instead of narration")
     p.add_argument("--media-dir", help="Folder of user-owned images/video B-roll")
     p.add_argument("--music", help="User-owned music file (otherwise an original procedural score is used)")
+    p.add_argument("--youtube-audio", help="MP3 downloaded by the user from YouTube Audio Library")
+    p.add_argument("--music-title", default="")
+    p.add_argument("--music-artist", default="")
+    p.add_argument("--music-attribution", default="", help="Exact attribution text copied from Audio Library")
+    p.add_argument("--music-source", default="YouTube Audio Library")
     p.add_argument("--no-captions", action="store_true")
     a = p.parse_args()
     if a.gui or not a.topic:
@@ -35,13 +41,18 @@ def main():
             script=script,
             format=VideoFormat(a.mode),
             theme=a.theme,
-            voice_provider="silent-preview" if a.silent else "edge-tts",
+            voice_provider="silent-preview" if a.silent else "piper" if a.piper_model else "edge-tts",
             voice=a.voice,
             voice_rate=a.voice_rate,
+            piper_model=a.piper_model,
             image_provider="local-media" if a.media_dir else "local-card",
             media_dir=a.media_dir,
-            music_provider="local-file" if a.music else "procedural",
-            music_path=a.music,
+            music_provider="youtube-audio-library" if a.youtube_audio else "local-file" if a.music else "procedural",
+            music_path=a.youtube_audio or a.music,
+            music_title=a.music_title,
+            music_artist=a.music_artist,
+            music_attribution=a.music_attribution,
+            music_source=a.music_source,
             captions=not a.no_captions,
         )
     )
