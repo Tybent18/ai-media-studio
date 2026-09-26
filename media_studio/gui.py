@@ -17,8 +17,8 @@ class StudioApp(tk.Tk):
     def __init__(self, demo=False):
         super().__init__()
         self.demo = demo
-        self.title("AI Media Studio V4")
-        self.geometry("1240x800")
+        self.title("AI Media Studio V5")
+        self.geometry("1320x860")
         self.minsize(980, 680)
         self.configure(bg="#080f1e")
         self.events = queue.Queue()
@@ -46,7 +46,11 @@ class StudioApp(tk.Tk):
             side="left", padx=22, pady=16
         )
         tk.Label(
-            header, text="V4  •  LOCAL-FIRST PRODUCTION", fg="#38bdf8", bg="#0f1b30", font=("TkDefaultFont", 10, "bold")
+            header,
+            text="V5  •  FREE PERSONAL PRODUCTION",
+            fg="#38bdf8",
+            bg="#0f1b30",
+            font=("TkDefaultFont", 10, "bold"),
         ).pack(side="left")
         body = tk.Frame(self, bg="#080f1e")
         body.pack(fill="both", expand=True, padx=18, pady=16)
@@ -75,6 +79,17 @@ class StudioApp(tk.Tk):
             vals = [p.key for p in PROVIDER_CATALOG[kind]]
             self.vars[kind] = tk.StringVar(value=vals[0])
             ttk.Combobox(left, textvariable=self.vars[kind], values=vals, state="readonly").pack(fill="x", padx=16)
+        self.vars["voice"].set("edge-tts")
+        self.voice_var = tk.StringVar(value="en-US-GuyNeural")
+        tk.Entry(left, textvariable=self.voice_var, bg="#091426", fg="#f8fafc", relief="flat").pack(
+            fill="x", padx=16, pady=(6, 0), ipady=5
+        )
+        self.media_dir_var = tk.StringVar()
+        self.music_path_var = tk.StringVar()
+        ttk.Button(left, text="Choose media/B-roll folder", command=self.choose_media_dir).pack(
+            fill="x", padx=16, pady=(10, 0)
+        )
+        ttk.Button(left, text="Choose optional music", command=self.choose_music).pack(fill="x", padx=16, pady=(6, 0))
         self.label(left, "THEME")
         self.theme_var = tk.StringVar(value="midnight")
         theme_picker = ttk.Combobox(left, textvariable=self.theme_var, values=list(THEMES), state="readonly")
@@ -135,7 +150,24 @@ class StudioApp(tk.Tk):
             music_provider=self.vars["music"].get(),
             avatar_provider=self.vars["avatar"].get(),
             theme=self.theme_var.get(),
+            voice=self.voice_var.get().strip() or "en-US-GuyNeural",
+            media_dir=Path(self.media_dir_var.get()) if self.media_dir_var.get() else None,
+            music_path=Path(self.music_path_var.get()) if self.music_path_var.get() else None,
         )
+
+    def choose_media_dir(self):
+        selected = filedialog.askdirectory(title="Choose user-owned media/B-roll folder")
+        if selected:
+            self.media_dir_var.set(selected)
+            self.vars["image"].set("local-media")
+
+    def choose_music(self):
+        selected = filedialog.askopenfilename(
+            title="Choose user-owned music", filetypes=[("Audio", "*.wav *.mp3 *.m4a *.aac *.flac"), ("All", "*.*")]
+        )
+        if selected:
+            self.music_path_var.set(selected)
+            self.vars["music"].set("local-file")
 
     def apply_theme(self, _event=None):
         bg, panel, accent = THEMES[self.theme_var.get()]
