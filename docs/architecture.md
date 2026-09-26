@@ -1,4 +1,4 @@
-# AI Media Studio — Architecture Specification (V2)
+# AI Media Studio — Architecture Specification (V5)
 
 ## 1. Overview
 
@@ -141,9 +141,9 @@ Converts scene text into natural-sounding speech audio.
 
 Implementation
 
-Uses Microsoft Edge-TTS neural voice system
+Uses Piper offline neural voices, Microsoft Edge-TTS neural voices, or Flite fallback speech
 Scene-level audio generation
-Asynchronous execution per scene
+Provider-neutral scene execution with measured audio duration
 
 
 Features
@@ -204,7 +204,7 @@ Composes final video output from audio and visual assets.
 
 Implementation
 
-Built on MoviePy
+Built on direct FFmpeg subprocesses
 Each scene becomes an independent clip
 Audio is synchronized per scene duration
 Clips are concatenated into final output
@@ -215,9 +215,25 @@ Responsibilities
 Image-to-video clip conversion
 Audio synchronization
 Motion effect application
-Final composition rendering
+Independent narration/music gain, loudness normalization, and final composition rendering
 Output
-MP4 video file (H.264 encoded)
+Full-HD MP4 video file with H.264 video and AAC audio
+
+
+Desktop Editor and Preview
+
+Purpose
+
+Exposes the project model as an editable production workspace rather than a one-shot form.
+
+Responsibilities
+
+- Convert tagged scripts into editable scene objects
+- Replace scene media and adjust scene duration
+- Select providers and set narration/music levels
+- Display generated frames while FFmpeg renders
+- Decode the completed MP4 into an embedded visual preview
+- Launch the same MP4 in the system player for synchronized sound
 
 
 Data Flow Model
