@@ -44,6 +44,7 @@ class ProjectSpec:
     captions: bool = True
     media_dir: Path | None = None
     music_path: Path | None = None
+    voice_volume: float = 1.0
     music_volume: float = 0.12
     music_title: str = ""
     music_artist: str = ""
