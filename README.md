@@ -56,11 +56,22 @@ The Studio writes the exact credit into `video-description.txt`, records it in `
 
 ## Production demos
 
-### Long-form workflow
+### V5 rendered review proof
+
+This is a real vertical review rendered by the V5 pipeline with Piper neural narration, captions, motion, and the
+new audible procedural music mix—not a design mockup.
+
+[Download the 12-second MP4 demo with voice and music](demo/v5/smoking-review-preview.mp4)
+
+[![V5 rendered anime-review excerpt](demo/v5/smoking-review-preview.gif)](demo/v5/smoking-review-preview.mp4)
+
+### Earlier pipeline walkthroughs
+
+#### Long-form workflow
 
 ![Long-form production](demo/v4/long-production.gif)
 
-### Shorts workflow
+#### Shorts workflow
 
 ![Short-form production](demo/v4/short-production.gif)
 
