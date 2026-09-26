@@ -1,8 +1,11 @@
+import asyncio
 import hashlib
 import json
 import math
 import os
+import shutil
 import struct
+import subprocess
 import textwrap
 import wave
 from dataclasses import asdict, dataclass
@@ -29,9 +32,17 @@ PROVIDER_CATALOG = {
             "local-card", "Local storyboard cards", "offline", None, "Deterministic test/demo fallback.", "built-in"
         ),
         ProviderSpec(
+            "local-media",
+            "Local images and video B-roll",
+            "offline",
+            None,
+            "User-owned media folder or per-scene media tags.",
+            "built-in",
+        ),
+        ProviderSpec(
             "openai-image",
             "OpenAI Image API",
-            "adapter",
+            "free-network",
             "OPENAI_API_KEY",
             "Generation and editing contract.",
             "https://platform.openai.com/docs/guides/image-generation",
@@ -71,6 +82,22 @@ PROVIDER_CATALOG = {
             "https://github.com/rany2/edge-tts",
         ),
         ProviderSpec(
+            "flite",
+            "Offline Flite narration",
+            "offline",
+            None,
+            "Fully offline narration through FFmpeg's libflite filter.",
+            "https://ffmpeg.org/ffmpeg-filters.html#flite",
+        ),
+        ProviderSpec(
+            "piper",
+            "Piper neural narration",
+            "offline",
+            None,
+            "Natural offline narration using a user-installed Piper voice model.",
+            "https://github.com/rhasspy/piper",
+        ),
+        ProviderSpec(
             "elevenlabs",
             "ElevenLabs",
             "adapter",
@@ -82,6 +109,22 @@ PROVIDER_CATALOG = {
     "music": [
         ProviderSpec(
             "procedural", "Procedural score", "offline", None, "Original deterministic ambient score.", "built-in"
+        ),
+        ProviderSpec(
+            "local-file",
+            "Local music file",
+            "offline",
+            None,
+            "User-owned WAV, MP3, M4A, AAC, or FLAC soundtrack.",
+            "built-in",
+        ),
+        ProviderSpec(
+            "youtube-audio-library",
+            "YouTube Audio Library import",
+            "import",
+            None,
+            "Imported Audio Library download with preserved attribution metadata.",
+            "https://support.google.com/youtube/answer/3376882",
         ),
         ProviderSpec(
             "suno-export",
@@ -170,6 +213,98 @@ class LocalCardProvider:
         return target
 
 
+class LocalMediaProvider:
+    """Resolve user-owned images or video clips without paid services."""
+
+    EXTENSIONS = (".png", ".jpg", ".jpeg", ".webp", ".mp4", ".mov", ".mkv", ".webm")
+
+    def generate(self, scene: Scene, project: ProjectSpec, index: int, target: Path):
+        if scene.image_path and Path(scene.image_path).is_file():
+            return Path(scene.image_path)
+        if project.media_dir and Path(project.media_dir).is_dir():
+            files = sorted(p for p in Path(project.media_dir).iterdir() if p.suffix.lower() in self.EXTENSIONS)
+            if files:
+                return files[index % len(files)]
+        return LocalCardProvider().generate(scene, project, index, target)
+
+
+def probe_duration(path: Path) -> float:
+    import subprocess
+
+    result = subprocess.run(
+        ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=nk=1:nw=1", str(path)],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return float(result.stdout.strip())
+
+
+def write_edge_narration(path: Path, text: str, voice: str, rate: str = "+0%"):
+    """Generate free narration through Edge TTS and return its measured duration."""
+    try:
+        import edge_tts
+    except ImportError as exc:
+        raise RuntimeError("Edge narration requires: pip install edge-tts") from exc
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    async def synthesize():
+        await edge_tts.Communicate(text=text, voice=voice, rate=rate).save(str(path))
+
+    try:
+        asyncio.run(synthesize())
+    except Exception as exc:
+        raise RuntimeError(f"Edge narration failed: {exc}") from exc
+    return path, probe_duration(path)
+
+
+def write_flite_narration(path: Path, text: str, voice: str = "slt"):
+    """Generate narration completely offline when FFmpeg includes libflite."""
+    ffmpeg = shutil.which("ffmpeg")
+    if not ffmpeg:
+        raise RuntimeError("Offline narration requires FFmpeg on PATH")
+    clean = text.replace("'", "").replace(":", " - ")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    result = subprocess.run(
+        [
+            ffmpeg,
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            f"flite=text='{clean}':voice={voice}",
+            "-ar",
+            "44100",
+            str(path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode:
+        raise RuntimeError("This FFmpeg build does not provide working Flite narration")
+    return path, probe_duration(path)
+
+
+def write_piper_narration(path: Path, text: str, model: Path):
+    """Generate natural neural narration locally with a Piper ONNX voice model."""
+    executable = shutil.which("piper")
+    command = [executable] if executable else [os.sys.executable, "-m", "piper"]
+    if not model or not Path(model).is_file():
+        raise RuntimeError("Choose a downloaded Piper .onnx voice model")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    result = subprocess.run(
+        [*command, "--model", str(model), "--output_file", str(path), "--sentence-silence", "0.12"],
+        input=text,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode:
+        raise RuntimeError(f"Piper narration failed: {result.stderr.strip()}")
+    return path, probe_duration(path)
+
+
 class LocalAvatarProvider:
     def generate(self, project, target):
         _, panel, accent = THEMES.get(project.theme, THEMES["midnight"])
@@ -203,6 +338,7 @@ def write_silence(path, duration, rate=44100):
 
 
 def write_music(path, duration, seed_text, rate=44100):
+    """Write a clearly audible, original synth score without copyrighted samples."""
     path.parent.mkdir(parents=True, exist_ok=True)
     seed = int(hashlib.sha256(seed_text.encode()).hexdigest()[:8], 16)
     root = [110, 130.81, 146.83, 164.81][seed % 4]
@@ -214,9 +350,19 @@ def write_music(path, duration, seed_text, rate=44100):
             buf = []
             for i in range(min(rate, total - start)):
                 t = (start + i) / rate
+                beat = t % 2
                 f = notes[int(t / 2) % 4]
-                env = min(1, (t % 2) / 0.12) * min(1, (2 - t % 2) / 0.2)
-                value = int(1500 * env * (math.sin(2 * math.pi * f * t) + 0.3 * math.sin(4 * math.pi * f * t)))
+                env = min(1, beat / 0.10) * min(1, (2 - beat) / 0.28)
+                pad = 0.58 * math.sin(2 * math.pi * (f / 2) * t)
+                lead = env * (
+                    0.72 * math.sin(2 * math.pi * f * t)
+                    + 0.22 * math.sin(4 * math.pi * f * t)
+                )
+                pulse_phase = t % 0.5
+                pulse_env = math.exp(-pulse_phase * 13)
+                pulse = 0.34 * pulse_env * math.sin(2 * math.pi * (root / 2) * t)
+                value = int(7200 * (pad + lead + pulse))
+                value = max(-32767, min(32767, value))
                 buf.append(struct.pack("<h", value))
             out.writeframesraw(b"".join(buf))
     return path

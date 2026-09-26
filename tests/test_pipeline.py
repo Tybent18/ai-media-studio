@@ -5,7 +5,7 @@ import pytest
 
 from media_studio.models import ProjectSpec, VideoFormat
 from media_studio.pipeline import MediaPipeline, PipelineCancelled, probe_video
-from media_studio.providers import PROVIDER_CATALOG
+from media_studio.providers import PROVIDER_CATALOG, write_silence
 
 SCRIPT = """Hook: Start with a sharp question.
 Point: Explain the system with visible evidence.
@@ -17,9 +17,11 @@ def test_parser_normalizes_modes():
     assert len(MediaPipeline.parse_script("\n".join(f"Point: {i}" for i in range(10)), VideoFormat.SHORT)) == 6
 
 
-@pytest.mark.parametrize("mode,size", [(VideoFormat.LONG, (1280, 720)), (VideoFormat.SHORT, (720, 1280))])
+@pytest.mark.parametrize("mode,size", [(VideoFormat.LONG, (1920, 1080)), (VideoFormat.SHORT, (1080, 1920))])
 def test_real_render_has_expected_canvas(tmp_path, mode, size):
-    result = MediaPipeline().run(ProjectSpec("Render proof", SCRIPT, mode, output_dir=tmp_path))
+    result = MediaPipeline().run(
+        ProjectSpec("Render proof", SCRIPT, mode, voice_provider="silent-preview", output_dir=tmp_path)
+    )
     path = Path(result["video_path"])
     assert path.exists() and path.stat().st_size > 1000
     info = probe_video(path)
@@ -47,7 +49,11 @@ def test_active_render_can_be_cancelled_and_cleaned(tmp_path):
     pipe = MediaPipeline(stop_during_render)
     holder["pipe"] = pipe
     with pytest.raises(PipelineCancelled):
-        pipe.run(ProjectSpec("Cancelled render", SCRIPT, VideoFormat.LONG, output_dir=tmp_path))
+        pipe.run(
+            ProjectSpec(
+                "Cancelled render", SCRIPT, VideoFormat.LONG, voice_provider="silent-preview", output_dir=tmp_path
+            )
+        )
     assert not list(tmp_path.rglob("*.mp4"))
 
 
@@ -55,8 +61,50 @@ def test_provider_catalog_has_local_fallbacks_and_remote_contracts():
     assert {x.mode for x in PROVIDER_CATALOG["image"]} >= {"offline", "adapter"}
     assert any(x.key == "elevenlabs" for x in PROVIDER_CATALOG["voice"])
     assert any(x.key == "local-vtuber" for x in PROVIDER_CATALOG["avatar"])
+    assert any(x.key == "piper" for x in PROVIDER_CATALOG["voice"])
+    assert any(x.key == "youtube-audio-library" for x in PROVIDER_CATALOG["music"])
 
 
 def test_uninstalled_remote_adapter_is_never_silently_faked(tmp_path):
     with pytest.raises(ValueError, match="not an installed adapter"):
-        MediaPipeline().run(ProjectSpec("Remote", SCRIPT, image_provider="openai-image", output_dir=tmp_path))
+        MediaPipeline().run(
+            ProjectSpec(
+                "Remote",
+                SCRIPT,
+                image_provider="openai-image",
+                voice_provider="silent-preview",
+                output_dir=tmp_path,
+            )
+        )
+
+
+def test_media_tags_are_parsed():
+    scene = MediaPipeline.parse_script("Point: Real footage [media=clips/example.mp4]", VideoFormat.LONG)[0]
+    assert scene.image_path == "clips/example.mp4"
+    assert scene.text == "Real footage"
+
+
+def test_audio_levels_are_serialized():
+    manifest = ProjectSpec("Levels", SCRIPT, voice_volume=1.15, music_volume=0.27).manifest()
+    assert manifest["voice_volume"] == 1.15
+    assert manifest["music_volume"] == 0.27
+
+
+def test_youtube_audio_library_credit_is_packaged(tmp_path):
+    music = write_silence(tmp_path / "track.wav", 8)
+    project = ProjectSpec(
+        "Credit proof",
+        "Point: A short narrated scene.",
+        VideoFormat.SHORT,
+        voice_provider="silent-preview",
+        music_provider="youtube-audio-library",
+        music_path=music,
+        music_title="Example Track",
+        music_artist="Example Artist",
+        music_attribution="Example Track by Example Artist is licensed under CC BY 4.0.",
+        output_dir=tmp_path / "renders",
+    )
+    result = MediaPipeline().run(project)
+    description = Path(result["description_path"]).read_text(encoding="utf-8")
+    assert "Example Track" in description
+    assert "CC BY 4.0" in description
