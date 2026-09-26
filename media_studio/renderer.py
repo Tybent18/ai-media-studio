@@ -1,3 +1,4 @@
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -26,7 +27,7 @@ def _run(cmd, cancel, hook=None):
                 raise InterruptedError("Render cancelled")
         _, err = process.communicate()
         if process.returncode:
-            raise RenderError(err.strip().splitlines()[-1] if err else "FFmpeg failed")
+            raise RenderError("\n".join(err.strip().splitlines()[-12:]) if err else "FFmpeg failed")
     finally:
         if hook:
             hook(None)
@@ -54,23 +55,44 @@ def render_video(project, scenes, workspace, output, music, avatar, cancel, prog
     for i, scene in enumerate(scenes):
         frame = Path(scene.image_path)
         audio = Path(scene.audio_path)
-        if avatar:
+        is_video = frame.suffix.lower() in {".mp4", ".mov", ".mkv", ".webm"}
+        if avatar and not is_video:
             _avatar(frame, avatar)
         segment = segdir / f"scene-{i:03d}.mp4"
+        fade_out = max(0, scene.duration - 0.25)
+        caption = re.sub(r"[':%]", "", scene.text).replace("\\", "").replace("\n", " ")[:180]
+        caption_filter = ""
+        if project.captions and caption:
+            font = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+            size = max(34, w // 30)
+            caption_filter = (
+                f",drawtext=fontfile={font}:text='{caption}':fontcolor=white:fontsize={size}:"
+                "x=(w-text_w)/2:y=h-text_h-h*0.075:box=1:boxcolor=black@0.62:boxborderw=18"
+            )
+        if is_video:
+            visual_input = ["-stream_loop", "-1", "-i", str(frame)]
+            visual_filter = f"scale={w}:{h}:force_original_aspect_ratio=increase,crop={w}:{h}"
+        else:
+            visual_input = ["-loop", "1", "-i", str(frame)]
+            frames = max(1, int(scene.duration * project.fps))
+            zoom = "min(zoom+0.0007,1.08)" if scene.motion != "zoom-out" else "max(1.08-0.0007*on,1.0)"
+            visual_filter = (
+                f"scale={w * 2}:{h * 2}:force_original_aspect_ratio=increase,crop={w * 2}:{h * 2},"
+                f"zoompan=z='{zoom}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
+                f"d={frames}:s={w}x{h}:fps={project.fps}"
+            )
+        visual_filter += f",fade=t=in:st=0:d=0.22,fade=t=out:st={fade_out}:d=0.25{caption_filter},format=yuv420p"
         _run(
             [
                 ffmpeg,
                 "-y",
-                "-loop",
-                "1",
-                "-i",
-                str(frame),
+                *visual_input,
                 "-i",
                 str(audio),
                 "-t",
                 str(scene.duration),
                 "-vf",
-                f"scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2,format=yuv420p",
+                visual_filter,
                 "-r",
                 str(project.fps),
                 "-c:v",
@@ -104,7 +126,8 @@ def render_video(project, scenes, workspace, output, music, avatar, cancel, prog
                 "-i",
                 str(music),
                 "-filter_complex",
-                "[1:a]volume=.13[m];[0:a][m]amix=inputs=2:duration=first[a]",
+                f"[1:a]volume={project.music_volume}[m];[0:a][m]amix=inputs=2:duration=first:normalize=0,"
+                "loudnorm=I=-16:TP=-1.5:LRA=11[a]",
                 "-map",
                 "0:v",
                 "-map",
