@@ -19,6 +19,7 @@ def main():
     p.add_argument("--piper-model", help="Path to a downloaded Piper .onnx voice model")
     p.add_argument("--silent", action="store_true", help="Use a silent preview instead of narration")
     p.add_argument("--media-dir", help="Folder of user-owned images/video B-roll")
+    p.add_argument("--infographic", action="store_true", help="Use the animated educational infographic visual mode")
     p.add_argument("--music", help="User-owned music file (otherwise an original procedural score is used)")
     p.add_argument("--youtube-audio", help="MP3 downloaded by the user from YouTube Audio Library")
     p.add_argument("--music-title", default="")
@@ -48,7 +49,7 @@ def main():
             voice_rate=a.voice_rate,
             piper_model=a.piper_model,
             voice_volume=max(0, a.voice_volume),
-            image_provider="local-media" if a.media_dir else "local-card",
+            image_provider="infographic" if a.infographic else "local-media" if a.media_dir else "local-card",
             media_dir=a.media_dir,
             music_provider="youtube-audio-library" if a.youtube_audio else "local-file" if a.music else "procedural",
             music_path=a.youtube_audio or a.music,
