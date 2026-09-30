@@ -25,6 +25,7 @@ class Scene:
     audio_path: str | None = None
     title: str = ""
     motion: str = "zoom-in"
+    composition_path: str | None = None
 
 
 @dataclass
