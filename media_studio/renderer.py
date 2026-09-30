@@ -163,9 +163,14 @@ def render_video(project, scenes, workspace, output, music, avatar, cancel, prog
             caption_file = workspace / "captions" / f"scene-{i:03d}.txt"
             caption_file.parent.mkdir(parents=True, exist_ok=True)
             caption_file.write_text(caption_text, encoding="utf-8")
-            font_option = f"fontfile='{font_path.as_posix()}':" if font_path else ""
+            # FFmpeg filter syntax treats ':' as an option separator.
+            # Escape Windows drive-letter colons in paths embedded in drawtext.
+            def filter_path(path):
+                return Path(path).resolve().as_posix().replace(":", r"\:")
+
+            font_option = f"fontfile='{filter_path(font_path)}':" if font_path else ""
             caption_filter = (
-                f",drawtext={font_option}textfile='{caption_file}':fontcolor=white:fontsize={size}:"
+                f",drawtext={font_option}textfile='{filter_path(caption_file)}':fontcolor=white:fontsize={size}:"
                 "x=(w-text_w)/2:y=h-text_h-h*0.075:box=1:boxcolor=black@0.62:boxborderw=18"
             )
         if is_video:
