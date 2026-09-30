@@ -8,6 +8,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
+from .layered import render_animation
+
 
 class RenderError(RuntimeError):
     pass
@@ -137,6 +139,14 @@ def render_video(project, scenes, workspace, output, music, avatar, cancel, prog
     for i, scene in enumerate(scenes):
         frame = Path(scene.image_path)
         audio = Path(scene.audio_path)
+        if scene.composition_path:
+            frame = render_animation(
+                Path(scene.composition_path),
+                workspace / "layered-video" / f"scene-{i:03d}.mp4",
+                project,
+                scene.duration,
+                project.fps,
+            )
         is_video = frame.suffix.lower() in {".mp4", ".mov", ".mkv", ".webm"}
         if project.captions and not is_video:
             frame = _caption_image(frame, workspace / "captioned" / f"scene-{i:03d}.png", scene.text)
