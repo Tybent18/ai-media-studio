@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .models import ProjectSpec, Scene, VideoFormat
 from .providers import (
+    InfographicProvider,
     LocalAvatarProvider,
     LocalMediaProvider,
     export_catalog,
@@ -68,7 +69,7 @@ class MediaPipeline:
     def run(self, project: ProjectSpec):
         self.cancel_event.clear()
         supported = {
-            "image_provider": {"local-card", "local-media"},
+            "image_provider": {"local-card", "local-media", "infographic"},
             "voice_provider": {"silent-preview", "edge-tts", "flite", "piper"},
             "music_provider": {"none", "procedural", "local-file", "youtube-audio-library"},
             "avatar_provider": {"local-vtuber", "none"},
@@ -100,7 +101,10 @@ class MediaPipeline:
                     )
                 )
             for i, s in enumerate(scenes):
-                s.image_path = str(LocalMediaProvider().generate(s, project, i, work / "frames" / f"scene-{i:03d}.png"))
+                visual_provider = InfographicProvider() if project.image_provider == "infographic" else LocalMediaProvider()
+                s.image_path = str(visual_provider.generate(s, project, i, work / "frames" / f"scene-{i:03d}.png"))
+                if project.image_provider == "infographic":
+                    s.motion = ("punch-in", "pan-right", "zoom-in", "pan-left")[i % 4]
                 self.preview(s.image_path)
                 self._emit(f"Visual {i + 1}/{len(scenes)}", 0.1 + 0.18 * (i + 1) / len(scenes))
             for i, s in enumerate(scenes):
