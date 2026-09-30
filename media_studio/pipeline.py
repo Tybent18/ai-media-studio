@@ -83,7 +83,10 @@ class MediaPipeline:
                     f"Choose one of: {', '.join(sorted(choices))}."
                 )
         run_id = uuid.uuid4().hex[:10]
-        root = Path(project.output_dir) / project.format.value / run_id
+        # Resolve the run workspace once. V6 scene plans survive multiple
+        # rendering stages, so relative output/work paths can otherwise be
+        # interpreted from a different current directory later in the run.
+        root = (Path(project.output_dir) / project.format.value / run_id).resolve()
         work = root / "work"
         work.mkdir(parents=True, exist_ok=True)
         try:
