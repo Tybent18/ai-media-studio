@@ -103,6 +103,29 @@ def _caption_image(frame, target, text):
     return target
 
 
+def _has_audio_stream(path):
+    ffprobe = shutil.which("ffprobe")
+    if not ffprobe:
+        raise RenderError("FFprobe is required to validate rendered audio")
+    result = subprocess.run(
+        [
+            ffprobe,
+            "-v",
+            "error",
+            "-select_streams",
+            "a:0",
+            "-show_entries",
+            "stream=codec_name",
+            "-of",
+            "default=nw=1:nk=1",
+            str(path),
+        ],
+        capture_output=True,
+        text=True,
+    )
+    return result.returncode == 0 and bool(result.stdout.strip())
+
+
 def render_video(project, scenes, workspace, output, music, avatar, cancel, progress, hook=None, preview=None):
     ffmpeg = shutil.which("ffmpeg")
     if not ffmpeg:
@@ -175,6 +198,8 @@ def render_video(project, scenes, workspace, output, music, avatar, cancel, prog
             cancel,
             hook,
         )
+        if not _has_audio_stream(segment):
+            raise RenderError(f"Rendered scene {i + 1} has no audio stream: {segment}")
         segments.append(segment)
         if preview:
             preview(frame)
@@ -214,5 +239,9 @@ def render_video(project, scenes, workspace, output, music, avatar, cancel, prog
         )
     else:
         shutil.copy2(joined, output)
+    if not _has_audio_stream(output):
+        raise RenderError(
+            "Final video has no audio stream. The render was stopped instead of reporting a silent video as complete."
+        )
     progress("Video ready", 1)
     return output
