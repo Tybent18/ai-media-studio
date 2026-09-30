@@ -2,6 +2,7 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 import textwrap
 from pathlib import Path
 
@@ -15,24 +16,37 @@ class RenderError(RuntimeError):
 def _run(cmd, cancel, hook=None):
     if cancel.is_set():
         raise InterruptedError("Render cancelled")
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    if hook:
-        hook(process)
-    try:
-        while process.poll() is None:
-            if cancel.wait(0.08):
-                process.terminate()
-                try:
-                    process.wait(2)
-                except subprocess.TimeoutExpired:
-                    process.kill()
-                raise InterruptedError("Render cancelled")
-        _, err = process.communicate()
-        if process.returncode:
-            raise RenderError("\n".join(err.strip().splitlines()[-12:]) if err else "FFmpeg failed")
-    finally:
+
+    # Do not leave FFmpeg stderr attached to an unread PIPE while polling.
+    # FFmpeg can fill the OS pipe buffer during a render and deadlock:
+    # FFmpeg waits for Python to drain stderr while Python waits for FFmpeg
+    # to exit. A temporary file keeps diagnostics without a bounded pipe.
+    with tempfile.TemporaryFile(mode="w+t", encoding="utf-8", errors="replace") as err_file:
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.DEVNULL,
+            stderr=err_file,
+            text=True,
+        )
         if hook:
-            hook(None)
+            hook(process)
+        try:
+            while process.poll() is None:
+                if cancel.wait(0.08):
+                    process.terminate()
+                    try:
+                        process.wait(2)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+                        process.wait()
+                    raise InterruptedError("Render cancelled")
+            if process.returncode:
+                err_file.seek(0)
+                err = err_file.read()
+                raise RenderError("\n".join(err.strip().splitlines()[-12:]) if err else "FFmpeg failed")
+        finally:
+            if hook:
+                hook(None)
 
 
 def _avatar(frame, avatar):
