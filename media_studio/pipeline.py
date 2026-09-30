@@ -8,6 +8,7 @@ from pathlib import Path
 
 from .models import ProjectSpec, Scene, VideoFormat
 from .layered import AssetLibrary, render_frame as render_layered_frame, write_plan
+from .generated_visuals import OpenAIStoryboardProvider
 from .providers import (
     InfographicProvider,
     LocalAvatarProvider,
@@ -70,7 +71,7 @@ class MediaPipeline:
     def run(self, project: ProjectSpec):
         self.cancel_event.clear()
         supported = {
-            "image_provider": {"local-card", "local-media", "infographic"},
+            "image_provider": {"local-card", "local-media", "infographic", "ai-storyboard", "ai-layered"},
             "voice_provider": {"silent-preview", "edge-tts", "flite", "piper"},
             "music_provider": {"none", "procedural", "local-file", "youtube-audio-library"},
             "avatar_provider": {"local-vtuber", "none"},
@@ -111,6 +112,12 @@ class MediaPipeline:
                     s.composition_path = str(plan)
                     s.image_path = str(render_layered_frame(plan, work / "frames" / f"scene-{i:03d}.png", project))
                     s.motion = "layered"
+                elif project.image_provider in {"ai-storyboard", "ai-layered"}:
+                    # Storyboard is the production-quality baseline. AI Layered currently
+                    # uses the same generated art as a background while the V6 layer
+                    # architecture evolves toward separate transparent generated assets.
+                    s.image_path = str(OpenAIStoryboardProvider().generate(s, project, i))
+                    s.motion = ("punch-in", "pan-right", "zoom-in", "pan-left")[i % 4]
                 else:
                     s.image_path = str(LocalMediaProvider().generate(s, project, i, work / "frames" / f"scene-{i:03d}.png"))
                 self.preview(s.image_path)
