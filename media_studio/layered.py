@@ -128,3 +128,62 @@ def render_frame(plan_path,target,project):
                 xx=x+int(ww*n/max(1,count)); d.ellipse((xx-10,y-10,xx+10,y+10),fill=color)
                 d.text((xx,y+28),str(L["start"]+n),anchor="ma",font=_font(max(18,w//50),True),fill="white")
     im.convert("RGB").save(target); return target
+
+
+def render_animation(plan_path, target, project, duration, fps=30):
+    """Render independently animated composition layers to a silent MP4.
+
+    Pillow performs the per-frame compositing so every object has its own
+    entrance timing and motion. FFmpeg then encodes the resulting frame stream.
+    """
+    import subprocess
+    plan=json.loads(Path(plan_path).read_text(encoding="utf-8"))
+    w,h=project.format.size; bg,panel,accent=THEMES.get(project.theme,THEMES["midnight"])
+    frames=max(1,int(duration*fps))
+    target.parent.mkdir(parents=True,exist_ok=True)
+    cmd=["ffmpeg","-y","-loglevel","error","-f","rawvideo","-pix_fmt","rgb24","-s",f"{w}x{h}","-r",str(fps),"-i","-",
+         "-an","-c:v","libx264","-preset","veryfast","-pix_fmt","yuv420p",str(target)]
+    proc=subprocess.Popen(cmd,stdin=subprocess.PIPE)
+    try:
+        for fi in range(frames):
+            t=fi/fps
+            im=Image.new("RGBA",(w,h),bg+(255,)); d=ImageDraw.Draw(im)
+            d.rounded_rectangle((int(w*.035),int(h*.035),int(w*.965),int(h*.965)),radius=max(30,w//28),
+                                fill=panel+(255,),outline=accent+(255,),width=max(4,w//220))
+            for order,L in enumerate(sorted(plan["layers"],key=lambda x:x["z"])):
+                if L["type"]=="background": continue
+                delay=min(duration*.48, order*.12)
+                q=max(0.0,min(1.0,(t-delay)/.38))
+                # cubic ease-out
+                e=1-(1-q)**3
+                if q<=0: continue
+                x=float(L.get("x",0)); y=float(L.get("y",0)); anim=L.get("anim","static")
+                scale=1.0
+                if anim in {"pop","pop-delay","pop-delay2"}: scale=.55+.45*e
+                elif anim in {"slam","slam-delay"}: scale=1.35-.35*e; y-=.08*(1-e)
+                elif anim=="slide-left": x+=.24*(1-e)
+                elif anim=="slide-down": y-=.12*(1-e)
+                if L["type"]=="image":
+                    a=Image.open(L["path"]).convert("RGBA")
+                    tw=max(1,int(w*L["w"]*scale)); a.thumbnail((tw,int(h*.55*scale)))
+                    if scale<1:
+                        a=a.resize((max(1,int(a.width*scale)),max(1,int(a.height*scale))),Image.Resampling.LANCZOS)
+                    im.alpha_composite(a,(int(w*x),int(h*y)))
+                elif L["type"]=="text":
+                    size=max(26,int(w*L["size"]*scale)); color=tuple(L.get("color",(241,245,249)))
+                    d.text((int(w*x),int(h*y)),L["text"],font=_font(size,True),fill=color)
+                elif L["type"]=="numberline":
+                    xx=int(w*x); yy=int(h*y); full=int(w*L["w"]); ww=int(full*e); color=tuple(L["color"])
+                    d.line((xx,yy,xx+ww,yy),fill=color,width=max(8,w//100))
+                    count=L["end"]-L["start"]
+                    for n in range(count+1):
+                        nx=xx+int(full*n/max(1,count))
+                        if nx<=xx+ww:
+                            d.ellipse((nx-10,yy-10,nx+10,yy+10),fill=color)
+                            d.text((nx,yy+28),str(L["start"]+n),anchor="ma",font=_font(max(18,w//50),True),fill="white")
+            proc.stdin.write(im.convert("RGB").tobytes())
+    finally:
+        if proc.stdin: proc.stdin.close()
+        rc=proc.wait()
+    if rc: raise RuntimeError("Layered animation encoder failed")
+    return target
