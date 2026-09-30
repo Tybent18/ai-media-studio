@@ -164,10 +164,24 @@ def render_video(project, scenes, workspace, output, music, avatar, cancel, prog
         else:
             visual_input = ["-loop", "1", "-i", str(frame)]
             frames = max(1, int(scene.duration * project.fps))
-            zoom = "min(zoom+0.0007,1.08)" if scene.motion != "zoom-out" else "max(1.08-0.0007*on,1.0)"
+            if scene.motion == "punch-in":
+                zoom = "min(zoom+0.0018,1.14)"
+                x_expr, y_expr = "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
+            elif scene.motion == "pan-right":
+                zoom = "1.08"
+                x_expr, y_expr = f"(iw-iw/zoom)*on/{frames}", "ih/2-(ih/zoom/2)"
+            elif scene.motion == "pan-left":
+                zoom = "1.08"
+                x_expr, y_expr = f"(iw-iw/zoom)*(1-on/{frames})", "ih/2-(ih/zoom/2)"
+            elif scene.motion == "zoom-out":
+                zoom = "max(1.08-0.0007*on,1.0)"
+                x_expr, y_expr = "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
+            else:
+                zoom = "min(zoom+0.0007,1.08)"
+                x_expr, y_expr = "iw/2-(iw/zoom/2)", "ih/2-(ih/zoom/2)"
             visual_filter = (
                 f"scale={w * 2}:{h * 2}:force_original_aspect_ratio=increase,crop={w * 2}:{h * 2},"
-                f"zoompan=z='{zoom}':x='iw/2-(iw/zoom/2)':y='ih/2-(ih/zoom/2)':"
+                f"zoompan=z='{zoom}':x='{x_expr}':y='{y_expr}':"
                 f"d={frames}:s={w}x{h}:fps={project.fps}"
             )
         visual_filter += f",fade=t=in:st=0:d=0.22,fade=t=out:st={fade_out}:d=0.25{caption_filter},format=yuv420p"
