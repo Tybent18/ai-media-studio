@@ -32,6 +32,14 @@ PROVIDER_CATALOG = {
             "local-card", "Local storyboard cards", "offline", None, "Deterministic test/demo fallback.", "built-in"
         ),
         ProviderSpec(
+            "infographic",
+            "Animated infographic explainer",
+            "offline",
+            None,
+            "Bold educational diagrams, equations, number zones, and presenter compositions.",
+            "built-in",
+        ),
+        ProviderSpec(
             "local-media",
             "Local images and video B-roll",
             "offline",
@@ -210,6 +218,103 @@ class LocalCardProvider:
             fill=(148, 163, 184),
         )
         target.parent.mkdir(parents=True, exist_ok=True)
+        im.save(target)
+        return target
+
+
+class InfographicProvider:
+    """Generate dense educational explainer frames instead of text-only cards."""
+
+    SAFE = (34, 197, 94)
+    DANGER = (239, 68, 68)
+    YELLOW = (250, 204, 21)
+    BLUE = (56, 189, 248)
+
+    def _center(self, draw, text, y, font, fill, width):
+        box = draw.textbbox((0, 0), text, font=font)
+        draw.text(((width - (box[2] - box[0])) / 2, y), text, font=font, fill=fill)
+
+    def _host(self, draw, w, h, accent, reaction=False):
+        cx, cy = int(w * .79), int(h * .72)
+        r = int(w * .12)
+        skin = (238, 205, 180)
+        draw.ellipse((cx-r, cy-r, cx+r, cy+r), fill=skin, outline=accent, width=max(4,w//180))
+        hair=(30, 41, 59)
+        draw.polygon([(cx-r,cy-r//2),(cx-r//2,cy-r-r//3),(cx,cy-r),(cx+r//2,cy-r-r//4),(cx+r,cy-r//3)],fill=hair)
+        eye=max(7,w//90)
+        for ex in (cx-r//3,cx+r//3):
+            draw.ellipse((ex-eye,cy-eye,ex+eye,cy+eye),fill=(15,23,42))
+        if reaction:
+            draw.ellipse((cx-r//4,cy+r//3,cx+r//4,cy+r//2),fill=(120,53,80))
+        else:
+            draw.arc((cx-r//3,cy+r//5,cx+r//3,cy+r//2),0,180,fill=(120,53,80),width=max(4,w//200))
+        draw.rounded_rectangle((cx-r,cy+r,cx+r,cy+r+int(h*.10)),radius=r//3,fill=(20,82,145),outline=accent,width=max(4,w//180))
+
+    def generate(self, scene: Scene, project: ProjectSpec, index: int, target: Path):
+        w, h = project.format.size
+        bg, panel, accent = THEMES.get(project.theme, THEMES["midnight"])
+        im = Image.new("RGB", (w, h), bg)
+        d = ImageDraw.Draw(im)
+        # layered classroom/infographic backdrop
+        d.rectangle((0,0,w,int(h*.12)), fill=tuple(min(255,c+8) for c in panel))
+        for x in range(-w//4, w+w//3, w//3):
+            d.ellipse((x,int(h*.68),x+w//2,int(h*1.03)),fill=tuple(min(255,c+6) for c in panel))
+        m=int(w*.055)
+        d.rounded_rectangle((m,int(h*.16),w-m,int(h*.88)),radius=max(28,w//28),fill=panel,outline=accent,width=max(3,w//260))
+        d.text((m+30,int(h*.19)),"LAZY MATH",font=_font(max(28,w//28),True),fill=self.YELLOW)
+
+        text=scene.text.strip()
+        lower=text.lower()
+        equation=re.search(r"\b(\d+)\s*(?:plus|\+)\s*(\d+)\b",lower)
+        dangerous=("danger" in lower or "10 or higher" in lower or "ten or higher" in lower)
+        safe=("safe" in lower or "9 or below" in lower or "nine or below" in lower) and not dangerous
+        color=self.DANGER if dangerous else self.SAFE if safe else accent
+
+        if "zero" in lower and "nine" in lower or "0" in lower and "9" in lower and "safe" in lower:
+            self._center(d,"0  →  9",int(h*.32),_font(max(70,w//10),True),self.SAFE,w)
+            self._center(d,"SAFE ZONE",int(h*.43),_font(max(48,w//15),True),self.SAFE,w)
+            y=int(h*.56)
+            d.line((int(w*.14),y,int(w*.86),y),fill=self.SAFE,width=max(8,w//90))
+            for n in range(10):
+                x=int(w*.14+(w*.72)*(n/9))
+                d.ellipse((x-10,y-10,x+10,y+10),fill=self.SAFE)
+                d.text((x,y+24),str(n),anchor="ma",font=_font(max(18,w//50),True),fill="white")
+        elif "ten" in lower and ("higher" in lower or "above" in lower) or "10" in lower and dangerous and not equation:
+            self._center(d,"10+",int(h*.31),_font(max(100,w//7),True),self.DANGER,w)
+            self._center(d,"DANGEROUS",int(h*.45),_font(max(48,w//14),True),self.DANGER,w)
+            y=int(h*.57)
+            d.line((int(w*.20),y,int(w*.84),y),fill=self.DANGER,width=max(8,w//90))
+            d.line((int(w*.20),y-35,int(w*.20),y+35),fill=self.YELLOW,width=max(8,w//90))
+            d.text((int(w*.20),y+50),"10",anchor="ma",font=_font(max(24,w//38),True),fill=self.YELLOW)
+        elif equation:
+            a,b=map(int,equation.groups()); total=a+b
+            eq=f"{a} + {b}"
+            self._center(d,eq,int(h*.30),_font(max(105,w//7),True),self.BLUE,w)
+            # physical counters make the arithmetic visible
+            unit=max(28,w//22); gap=unit+10
+            start=int(w*.20)
+            for n in range(min(a,8)):
+                x=start+(n%4)*gap; y=int(h*.48)+(n//4)*gap
+                d.rounded_rectangle((x,y,x+unit,y+unit),8,fill=self.BLUE)
+            start2=int(w*.56)
+            for n in range(min(b,8)):
+                x=start2+(n%4)*gap; y=int(h*.48)+(n//4)*gap
+                d.rounded_rectangle((x,y,x+unit,y+unit),8,fill=self.DANGER)
+            if any(word in lower for word in ("equals","makes","thirteen","seven","cross")):
+                self._center(d,str(total),int(h*.62),_font(max(120,w//6),True),self.DANGER if total>=10 else self.SAFE,w)
+                label="DANGEROUS" if total>=10 else "SAFE"
+                self._center(d,label,int(h*.73),_font(max(42,w//16),True),self.DANGER if total>=10 else self.SAFE,w)
+        else:
+            title = scene.title if scene.title and scene.title != scene.kind.upper() else (
+                "THE 10 RULE" if "ten rule" in lower else "PREDICT FIRST" if scene.kind=="hook" else scene.kind.upper()
+            )
+            self._center(d,title,int(h*.31),_font(max(62,w//12),True),color,w)
+            wrapped="\n".join(textwrap.wrap(text,26 if project.format.value=="short" else 50)[:4])
+            d.multiline_text((int(w*.10),int(h*.46)),wrapped,font=_font(max(34,w//24),True),fill=(241,245,249),spacing=18)
+
+        self._host(d,w,h,accent,reaction=dangerous)
+        d.text((m,h-m),"SAME MATH. LESS WORK.",font=_font(max(20,w//45),True),fill=(203,213,225))
+        target.parent.mkdir(parents=True,exist_ok=True)
         im.save(target)
         return target
 
