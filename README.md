@@ -222,3 +222,17 @@ The suite renders actual MP4 files and probes them with FFprobe. It validates bo
 ## License
 
 [MIT](LICENSE)
+
+## V6 experimental layered explainer renderer
+
+The `Animated infographic explainer` provider now uses a layered scene director rather than a flattened storyboard card. Each scene is planned as independently animated text, presenter, signs, equations, and number-line elements. Reusable presenter/sign assets are cached under `assets/v6/`.
+
+Current V6 experiment:
+- persistent reusable asset library
+- script-aware equation and number-boundary scene planning
+- independently timed layer entrances
+- pop, slam, slide, wipe, and presenter reaction animations
+- Edge TTS narration through the existing production pipeline
+- FFmpeg final composition, captions, music, and audio validation
+
+The next visual tier is pluggable generated illustration assets while retaining the same scene-plan/timeline architecture.
