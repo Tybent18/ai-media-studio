@@ -49,6 +49,22 @@ PROVIDER_CATALOG = {
             "built-in",
         ),
         ProviderSpec(
+            "ai-storyboard",
+            "AI Storyboard — High Quality",
+            "network",
+            "OPENAI_API_KEY",
+            "Generates polished illustrated explainer scenes, cached locally for reuse.",
+            "https://platform.openai.com/docs/guides/image-generation",
+        ),
+        ProviderSpec(
+            "ai-layered",
+            "AI Layered Assets — Experimental",
+            "network",
+            "OPENAI_API_KEY",
+            "High-end generated asset workflow for independent animation layers.",
+            "built-in-v6",
+        ),
+        ProviderSpec(
             "openai-image",
             "OpenAI Image API",
             "free-network",
