@@ -1,0 +1,6 @@
+Hook: What if I told you you could predict an addition problem before you even solve it?
+Point: Zero through nine is safe.
+Point: Ten or higher is dangerous.
+Point: Three plus four equals seven. Seven is safe.
+Point: Six plus seven equals thirteen. Thirteen is dangerous.
+Outro: Same math. Less work. Work smarter. Stay lazy.
