@@ -3,6 +3,7 @@ import hashlib
 import json
 import math
 import os
+import re
 import shutil
 import struct
 import subprocess
