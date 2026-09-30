@@ -144,6 +144,7 @@ PROVIDER_CATALOG = {
         ),
     ],
     "avatar": [
+        ProviderSpec("none", "No avatar", "offline", None, "Render without a host or avatar overlay.", "built-in"),
         ProviderSpec("local-vtuber", "Local VTuber host", "offline", None, "Illustrated host overlay.", "built-in"),
         ProviderSpec(
             "live2d", "Live2D model", "import", None, "Planned local model adapter.", "https://www.live2d.com/en/"
