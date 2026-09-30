@@ -236,3 +236,36 @@ Current V6 experiment:
 - FFmpeg final composition, captions, music, and audio validation
 
 The next visual tier is pluggable generated illustration assets while retaining the same scene-plan/timeline architecture.
+
+
+## V6 — Generative visual production
+
+V6 adds production-quality AI visual modes intended to move beyond deterministic storyboard cards.
+
+### AI Storyboard — High Quality
+Generates a polished illustrated composition for each scene, caches it under `assets/v6/generated/storyboards/`, and sends it through the existing narration, motion, caption, music, and FFmpeg pipeline.
+
+Set an OpenAI API key before launching:
+
+Windows PowerShell (current terminal):
+```powershell
+$env:OPENAI_API_KEY="your-key-here"
+.\.venv\Scripts\python.exe main.py --gui
+```
+
+To persist it for future terminals:
+```powershell
+setx OPENAI_API_KEY "your-key-here"
+```
+Then close and reopen VS Code before launching the app.
+
+Optional model override:
+```powershell
+$env:AI_MEDIA_IMAGE_MODEL="gpt-image-2"
+```
+
+### AI Layered Assets — Experimental
+This option currently uses the high-quality generated storyboard as its visual baseline while the V6 compositor is extended to request reusable transparent presenter poses, props, backgrounds, and foreground elements separately. The architecture is intentionally provider-based so generated assets can be cached and animated independently.
+
+### Quality philosophy
+Generated artwork avoids long embedded text. Exact equations, captions, labels, and typography should remain deterministic renderer layers. This combines generative illustration quality with reliable educational notation.
