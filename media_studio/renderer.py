@@ -1,3 +1,4 @@
+import os
 import re
 import shutil
 import subprocess
@@ -45,12 +46,31 @@ def _avatar(frame, avatar):
     base.convert("RGB").save(frame)
 
 
+def _caption_font(size):
+    """Load a usable bold caption font on Windows, macOS, or Linux."""
+    windows = Path(os.environ.get("WINDIR", r"C:\\Windows")) / "Fonts"
+    candidates = [
+        windows / "arialbd.ttf",
+        windows / "segoeuib.ttf",
+        Path("/System/Library/Fonts/Supplemental/Arial Bold.ttf"),
+        Path("/Library/Fonts/Arial Bold.ttf"),
+        Path("/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"),
+        Path("/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf"),
+    ]
+    for path in candidates:
+        if path.is_file():
+            try:
+                return ImageFont.truetype(str(path), size), path
+            except OSError:
+                continue
+    return ImageFont.load_default(), None
+
+
 def _caption_image(frame, target, text):
     base = Image.open(frame).convert("RGBA")
     overlay = Image.new("RGBA", base.size, (0, 0, 0, 0))
     draw = ImageDraw.Draw(overlay)
-    font_path = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
-    font = ImageFont.truetype(font_path, max(28, base.width // 32))
+    font, _ = _caption_font(max(28, base.width // 32))
     wrapped = "\n".join(textwrap.wrap(text, 38 if base.width < base.height else 70))
     box = draw.multiline_textbbox((0, 0), wrapped, font=font, spacing=8, align="center")
     tw, th = box[2] - box[0], box[3] - box[1]
@@ -91,13 +111,14 @@ def render_video(project, scenes, workspace, output, music, avatar, cancel, prog
         caption = r"\n".join(textwrap.wrap(caption_text, 32 if project.format.value == "short" else 65))
         caption_filter = ""
         if project.captions and caption and is_video:
-            font = "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf"
+            _, font_path = _caption_font(max(34, w // 30))
             size = max(34, w // 30)
             caption_file = workspace / "captions" / f"scene-{i:03d}.txt"
             caption_file.parent.mkdir(parents=True, exist_ok=True)
             caption_file.write_text(caption_text, encoding="utf-8")
+            font_option = f"fontfile='{font_path.as_posix()}':" if font_path else ""
             caption_filter = (
-                f",drawtext=fontfile={font}:textfile='{caption_file}':fontcolor=white:fontsize={size}:"
+                f",drawtext={font_option}textfile='{caption_file}':fontcolor=white:fontsize={size}:"
                 "x=(w-text_w)/2:y=h-text_h-h*0.075:box=1:boxcolor=black@0.62:boxborderw=18"
             )
         if is_video:
