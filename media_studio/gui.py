@@ -123,7 +123,7 @@ class StudioApp(tk.Tk):
         friendly = {p.key: p.label for group in PROVIDER_CATALOG.values() for p in group}
         self.vars, self.provider_maps = {}, {}
         defaults = {
-            "image": "Local images and video B-roll",
+            "image": "Animated infographic explainer",
             "voice": "Microsoft Edge TTS",
             "avatar": "Local VTuber host",
             "music": "Procedural score",
