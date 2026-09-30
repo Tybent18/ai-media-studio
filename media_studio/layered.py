@@ -27,7 +27,7 @@ class AssetLibrary:
     """Persistent, reusable transparent assets. Generated once, then cached."""
 
     def __init__(self, root=Path("assets/v6")):
-        self.root=Path(root)
+        self.root=Path(root).resolve()
         self.root.mkdir(parents=True,exist_ok=True)
 
     def _save(self,name,build,size=(420,420)):
