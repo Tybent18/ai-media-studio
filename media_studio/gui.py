@@ -455,8 +455,11 @@ class StudioApp(tk.Tk):
             self.events.put(("done", self.pipeline.run(project)))
         except PipelineCancelled:
             self.events.put(("cancelled",))
-        except (OSError, ValueError, RuntimeError) as exc:
-            self.events.put(("error", str(exc)))
+        except Exception as exc:
+            # Preserve the exception type in the GUI. Many third-party
+            # libraries otherwise collapse useful failures into vague
+            # messages such as "cannot open resource".
+            self.events.put(("error", f"{type(exc).__name__}: {exc}"))
 
     def show_frame(self, path):
         try:
