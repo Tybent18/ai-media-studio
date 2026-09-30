@@ -279,14 +279,34 @@ class StudioApp(tk.Tk):
 
         def recolor(widget):
             for child in widget.winfo_children():
+                # Tk and ttk widgets expose different configuration options.
+                # Only apply colors a widget explicitly supports so themed ttk
+                # controls do not crash the GUI with "unknown option" TclErrors.
+                supported = set(child.keys())
+                colors = {}
+
                 if isinstance(child, (tk.Frame, tk.Canvas)):
-                    child.configure(bg=p["panel"])
+                    if "background" in supported:
+                        colors["background"] = p["panel"]
                 elif isinstance(child, tk.Label):
-                    child.configure(bg=p["panel"], fg=p["muted"])
+                    if "background" in supported:
+                        colors["background"] = p["panel"]
+                    if "foreground" in supported:
+                        colors["foreground"] = p["muted"]
                 elif isinstance(child, (tk.Text, tk.Listbox, tk.Entry)):
-                    child.configure(
-                        bg=p["field"], fg=p["text"], insertbackground=p["accent"], selectbackground=p["accent"]
-                    )
+                    if "background" in supported:
+                        colors["background"] = p["field"]
+                    if "foreground" in supported:
+                        colors["foreground"] = p["text"]
+                    if "insertbackground" in supported:
+                        colors["insertbackground"] = p["accent"]
+                    if "selectbackground" in supported:
+                        colors["selectbackground"] = p["accent"]
+                    if "selectforeground" in supported:
+                        colors["selectforeground"] = p["bg"]
+
+                if colors:
+                    child.configure(**colors)
                 recolor(child)
 
         recolor(self)
