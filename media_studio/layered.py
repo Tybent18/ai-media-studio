@@ -101,6 +101,7 @@ def plan_scene(scene,index,project,assets):
 
 def write_plan(scene,index,project,target,assets=None):
     assets=assets or AssetLibrary()
+    target=Path(target).resolve()
     target.parent.mkdir(parents=True,exist_ok=True)
     target.write_text(json.dumps(plan_scene(scene,index,project,assets),indent=2),encoding="utf-8")
     return target
@@ -108,7 +109,10 @@ def write_plan(scene,index,project,target,assets=None):
 
 def render_frame(plan_path,target,project):
     """Render a representative frame for GUI preview/fallback. Video renderer animates the same layers."""
-    plan=json.loads(Path(plan_path).read_text(encoding="utf-8"))
+    plan_path=Path(plan_path).resolve()
+    target=Path(target).resolve()
+    target.parent.mkdir(parents=True,exist_ok=True)
+    plan=json.loads(plan_path.read_text(encoding="utf-8"))
     w,h=project.format.size; bg,panel,accent=THEMES.get(project.theme,THEMES["midnight"])
     im=Image.new("RGBA",(w,h),bg+(255,)); d=ImageDraw.Draw(im)
     d.rounded_rectangle((int(w*.035),int(h*.035),int(w*.965),int(h*.965)),radius=max(30,w//28),fill=panel+(255,),outline=accent+(255,),width=max(4,w//220))
@@ -137,7 +141,9 @@ def render_animation(plan_path, target, project, duration, fps=30):
     entrance timing and motion. FFmpeg then encodes the resulting frame stream.
     """
     import subprocess
-    plan=json.loads(Path(plan_path).read_text(encoding="utf-8"))
+    plan_path=Path(plan_path).resolve()
+    target=Path(target).resolve()
+    plan=json.loads(plan_path.read_text(encoding="utf-8"))
     w,h=project.format.size; bg,panel,accent=THEMES.get(project.theme,THEMES["midnight"])
     frames=max(1,int(duration*fps))
     target.parent.mkdir(parents=True,exist_ok=True)
