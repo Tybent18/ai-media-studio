@@ -7,6 +7,7 @@ import uuid
 from pathlib import Path
 
 from .models import ProjectSpec, Scene, VideoFormat
+from .layered import AssetLibrary, render_frame as render_layered_frame, write_plan
 from .providers import (
     InfographicProvider,
     LocalAvatarProvider,
@@ -101,10 +102,14 @@ class MediaPipeline:
                     )
                 )
             for i, s in enumerate(scenes):
-                visual_provider = InfographicProvider() if project.image_provider == "infographic" else LocalMediaProvider()
-                s.image_path = str(visual_provider.generate(s, project, i, work / "frames" / f"scene-{i:03d}.png"))
                 if project.image_provider == "infographic":
-                    s.motion = ("punch-in", "pan-right", "zoom-in", "pan-left")[i % 4]
+                    assets = AssetLibrary()
+                    plan = write_plan(s, i, project, work / "plans" / f"scene-{i:03d}.json", assets)
+                    s.composition_path = str(plan)
+                    s.image_path = str(render_layered_frame(plan, work / "frames" / f"scene-{i:03d}.png", project))
+                    s.motion = "layered"
+                else:
+                    s.image_path = str(LocalMediaProvider().generate(s, project, i, work / "frames" / f"scene-{i:03d}.png"))
                 self.preview(s.image_path)
                 self._emit(f"Visual {i + 1}/{len(scenes)}", 0.1 + 0.18 * (i + 1) / len(scenes))
             for i, s in enumerate(scenes):
