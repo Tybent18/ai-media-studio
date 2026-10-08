@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import threading
 import uuid
+from dataclasses import replace
 from pathlib import Path
 
 from .models import ProjectSpec, Scene, VideoFormat
@@ -92,7 +93,7 @@ class MediaPipeline:
         work.mkdir(parents=True, exist_ok=True)
         try:
             self._emit("Planning scenes", 0.05)
-            scenes = project.scenes or self.parse_script(project.script, project.format)
+            scenes = [replace(scene) for scene in project.scenes] if project.scenes else self.parse_script(project.script, project.format)
             if not scenes:
                 raise ValueError("Add at least one line of script")
             if project.music_provider == "youtube-audio-library" and project.music_credit_card:
