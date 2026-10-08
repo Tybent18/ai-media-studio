@@ -23,7 +23,8 @@ ART DIRECTION:
 - premium modern vector/editorial illustration with dimensional lighting and clean shapes
 - energetic educational YouTube motion-infographic aesthetic; original visual identity, not a copy of any channel
 - expressive recurring young adult presenter, navy/blue outfit, warm friendly face
-- visually explain the concept with physical objects, diagrams, classroom/lab props, arrows, groups, number blocks, or environmental storytelling
+- explain concepts with physical objects, diagrams, classroom props, arrows, number blocks,
+  and environmental storytelling
 - strong foreground/midground/background separation so camera movement feels dimensional
 - bold composition, high contrast, polished studio quality, immediately readable on a phone
 - vary camera angle and staging from neighboring scenes
@@ -79,7 +80,8 @@ class OpenAIStoryboardProvider:
             raw=base64.b64decode(item["b64_json"])
         elif item.get("url"):
             download=requests.get(item["url"],timeout=120)
-            download.raise_for_status(); raw=download.content
+            download.raise_for_status()
+            raw=download.content
         else:
             raise GeneratedVisualError("Image API returned no image payload")
         cached.write_bytes(raw)
@@ -88,6 +90,7 @@ class OpenAIStoryboardProvider:
         im=Image.open(cached).convert("RGB")
         scale=max(w/im.width,h/im.height)
         im=im.resize((int(im.width*scale),int(im.height*scale)),Image.Resampling.LANCZOS)
-        left=(im.width-w)//2; top=(im.height-h)//2
+        left=(im.width-w)//2
+        top=(im.height-h)//2
         im.crop((left,top,left+w,top+h)).save(cached)
         return cached

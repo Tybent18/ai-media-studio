@@ -151,7 +151,11 @@ def render_video(project, scenes, workspace, output, music, avatar, cancel, prog
         if project.captions and not is_video:
             frame = _caption_image(frame, workspace / "captioned" / f"scene-{i:03d}.png", scene.text)
         if avatar and not is_video:
-            _avatar(frame, avatar)
+            avatar_frame = workspace / "avatar-composited" / f"scene-{i:03d}.png"
+            avatar_frame.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(frame, avatar_frame)
+            _avatar(avatar_frame, avatar)
+            frame = avatar_frame
         segment = segdir / f"scene-{i:03d}.mp4"
         fade_out = max(0, scene.duration - 0.25)
         caption_text = re.sub(r"[':%]", "", scene.text).replace("\\", "").replace("\n", " ")[:180]

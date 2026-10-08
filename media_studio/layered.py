@@ -1,12 +1,10 @@
 """Layered V6 educational scene planning and asset rendering."""
 
 import json
-import math
-import os
 import re
 from pathlib import Path
 
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 
 from .providers import THEMES, _font
 
@@ -55,7 +53,7 @@ class AssetLibrary:
         return self._save(f"host-{pose}",build)
 
     def sign(self,label,color):
-        safe=re.sub(r"[^a-z0-9]+","-",label.lower()).strip("-")
+        safe = re.sub(r"[^a-zA-Z0-9_-]+", "-", label).strip("-") or "sign"
         def build(d,w,h):
             d.rounded_rectangle((12,90,w-12,h-90),36,fill=color+(235,),outline=(255,255,255,210),width=7)
             f=_font(52,True); d.text((w//2,h//2),label,anchor="mm",font=f,fill="white")

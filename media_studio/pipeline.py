@@ -4,13 +4,13 @@ import shutil
 import subprocess
 import threading
 import uuid
+from dataclasses import replace
 from pathlib import Path
 
-from .models import ProjectSpec, Scene, VideoFormat
-from .layered import AssetLibrary, render_frame as render_layered_frame, write_plan
 from .generated_visuals import OpenAIStoryboardProvider
+from .layered import AssetLibrary, render_frame as render_layered_frame, write_plan
+from .models import ProjectSpec, Scene, VideoFormat
 from .providers import (
-    InfographicProvider,
     LocalAvatarProvider,
     LocalMediaProvider,
     export_catalog,
@@ -92,7 +92,7 @@ class MediaPipeline:
         work.mkdir(parents=True, exist_ok=True)
         try:
             self._emit("Planning scenes", 0.05)
-            scenes = project.scenes or self.parse_script(project.script, project.format)
+            scenes = [replace(scene) for scene in project.scenes] if project.scenes else self.parse_script(project.script, project.format)
             if not scenes:
                 raise ValueError("Add at least one line of script")
             if project.music_provider == "youtube-audio-library" and project.music_credit_card:
