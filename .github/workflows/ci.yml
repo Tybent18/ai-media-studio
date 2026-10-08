@@ -22,6 +22,7 @@ jobs:
       - name: Lint
         run: ruff check .
       - name: Test real renders
+        if: success() || failure()
         run: pytest -q
 
   demos:
