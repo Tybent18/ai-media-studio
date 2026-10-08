@@ -21,7 +21,10 @@ def test_avatar_compositing_does_not_modify_imported_image(tmp_path, monkeypatch
 
     monkeypatch.setattr(renderer, "_run", fake_run)
     monkeypatch.setattr(renderer, "_has_audio_stream", lambda path: True)
-    monkeypatch.setattr(renderer.shutil, "copy2", lambda src, dst: __import__("shutil").copyfile(src, dst))
+    def fake_copy(src, dst):
+        Path(dst).write_bytes(Path(src).read_bytes() if Path(src).exists() else b"mock video")
+
+    monkeypatch.setattr(renderer.shutil, "copy2", fake_copy)
     scene = SimpleNamespace(image_path=str(original), audio_path=str(original), composition_path=None,
                             duration=2.5, text="Example", motion="zoom-in")
     project = SimpleNamespace(format=SimpleNamespace(size=(240, 160), value="long"), captions=False,
