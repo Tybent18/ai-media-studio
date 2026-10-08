@@ -7,11 +7,10 @@ import uuid
 from dataclasses import replace
 from pathlib import Path
 
-from .models import ProjectSpec, Scene, VideoFormat
-from .layered import AssetLibrary, render_frame as render_layered_frame, write_plan
 from .generated_visuals import OpenAIStoryboardProvider
+from .layered import AssetLibrary, render_frame as render_layered_frame, write_plan
+from .models import ProjectSpec, Scene, VideoFormat
 from .providers import (
-    InfographicProvider,
     LocalAvatarProvider,
     LocalMediaProvider,
     export_catalog,
